@@ -1,0 +1,18 @@
+{
+  "name": "live-tiktok-pgd",
+  "version": "1.0.0",
+  "description": "Chùa ảo tương tác cho TikTok LIVE: người xem vào điện, bình luận, thả tim, tặng quà để dâng hương / lễ Phật / dâng hoa sen.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "tiktok-live-connector": "^2.5.0",
+    "ws": "^8.22.0"
+  }
+}

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chùa ảo · Điều khiển</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #140a05; --panel: #22130a; --line: #4a2f18; --gold: #e2b25a; --text: #f4e6c8; --muted: #b59c78; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Be Vietnam Pro', system-ui, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 40px; display: grid; grid-template-columns: 1fr 360px; gap: 20px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  h1 { font-size: 22px; margin: 0 0 4px; color: var(--gold); }
+  p.sub { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  h2 { font-size: 15px; margin: 0 0 12px; color: var(--gold); text-transform: uppercase; letter-spacing: .5px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  input { flex: 1; min-width: 180px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: #120904; color: var(--text); font: inherit; }
+  button { padding: 9px 14px; border-radius: 8px; border: 1px solid var(--line); background: #3a2210; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover { border-color: var(--gold); }
+  button.primary { background: var(--gold); color: #2a1404; border-color: var(--gold); }
+  .status { margin-top: 10px; font-size: 14px; display: flex; gap: 8px; align-items: center; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #777; }
+  .dot.connected { background: #4cd964; } .dot.connecting { background: #f5c542; } .dot.offline, .dot.error { background: #e5533d; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .stats div { background: #120904; border-radius: 8px; padding: 8px; text-align: center; }
+  .stats b { display: block; font-size: 20px; color: var(--gold); }
+  .preview { position: relative; width: 100%; aspect-ratio: 9 / 16; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #000; }
+  .preview iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  #log { height: 220px; overflow: auto; font-size: 13px; color: var(--muted); background: #120904; border-radius: 8px; padding: 8px; }
+  #log div { padding: 2px 0; border-bottom: 1px dashed #2c1a0d; }
+  code { background: #120904; padding: 2px 6px; border-radius: 4px; color: var(--gold); }
+  ol.help { margin: 0; padding-left: 20px; line-height: 1.7; font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <h1>🪷 Chùa ảo · TikTok LIVE</h1>
+    <p class="sub">Người xem vào live thành Phật tử trong chánh điện. Bình luận hiện bong bóng, thả tim bay tim, tặng quà thì dâng hương, lễ Phật, dâng hoa sen.</p>
+
+    <section>
+      <h2>Kết nối live</h2>
+      <div class="row">
+        <input id="user" placeholder="Tên TikTok đang live, vd: tranvankhai" autocomplete="off">
+        <button class="primary" id="btnConnect">Kết nối</button>
+        <button id="btnStop">Ngắt</button>
+      </div>
+      <div class="status"><span class="dot" id="dot"></span><span id="statusText">Chưa kết nối</span></div>
+      <div class="stats">
+        <div><b id="sViewers">0</b>người xem</div>
+        <div><b id="sLikes">0</b>tim</div>
+        <div><b id="sCoins">0</b>xu</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Thử không cần live</h2>
+      <div class="row" style="margin-bottom:8px">
+        <button data-sim="join">+1 người vào</button>
+        <button data-sim="join10">+20 người vào</button>
+        <button data-sim="chat">Bình luận</button>
+        <button data-sim="like">Thả tim</button>
+        <button data-sim="follow">Theo dõi</button>
+      </div>
+      <div class="row">
+        <button data-sim="gift1">🪔 Quà 1 xu</button>
+        <button data-sim="gift5">🙏 Quà 5 xu</button>
+        <button data-sim="gift10">🪷 Quà 10 xu</button>
+        <button data-sim="gift100">✨ Quà 100 xu</button>
+        <button id="btnAuto">▶ Tự chạy</button>
+        <button id="btnReset">Xoá bảng xếp hạng</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Đưa lên live</h2>
+      <ol class="help">
+        <li>Mở <b>TikTok LIVE Studio</b> (hoặc OBS), thêm nguồn <b>Link / Browser source</b>.</li>
+        <li>Dán đường dẫn <code id="ovUrl"></code>, khung <b>1080 × 1920</b> (dọc).</li>
+        <li>Lên live rồi bấm <b>Kết nối</b> ở trên với tên TikTok của kênh.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Nhật ký</h2>
+      <div id="log"></div>
+    </section>
+  </div>
+
+  <div>
+    <div class="preview"><iframe src="overlay" title="Xem trước overlay"></iframe></div>
+  </div>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  $('ovUrl').textContent = location.origin + '/overlay';
+  let ws;
+  const send = (m) => ws && ws.readyState === 1 && ws.send(JSON.stringify(m));
+
+  const NAMES = ['Thảo My', 'Hoàng Dương', 'oanh luu', 'Phúc', 'Thị Lê', 'Li.am', 'Pnthinh', 'Minh Tâm', 'An Nhiên', 'Bảo Ngọc', 'Gia Huy', 'Thanh Tú', 'Kim Chi', 'Đức Anh', 'Hải Yến'];
+  const CHATS = ['Nam Mô A Di Đà Phật', 'A di đà phật 🙏', 'Cầu cho gia đình bình an', 'Chúc tú mạnh khoẻ', 'Mô Phật', 'Cho đốt 1 cây', 'Con cầu thi đỗ'];
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  let seq = 0;
+  const known = [];
+  const newUser = () => { const i = seq++; const u = { id: 'sim' + i, name: i < NAMES.length ? NAMES[i] : pick(NAMES) + ' ' + i, avatar: '' }; known.push(u); return u; };
+  const someone = () => known.length ? pick(known) : newUser();
+
+  const SIM = {
+    join: () => send({ type: 'sim', ev: { kind: 'join', user: newUser() } }),
+    join10: () => { for (let i = 0; i < 20; i++) setTimeout(SIM.join, i * 100); },
+    chat: () => send({ type: 'sim', ev: { kind: 'chat', user: someone(), text: pick(CHATS) } }),
+    like: () => send({ type: 'sim', ev: { kind: 'like', user: someone(), count: 1 + Math.floor(Math.random() * 15) } }),
+    follow: () => send({ type: 'sim', ev: { kind: 'follow', user: someone() } }),
+    gift1: () => send({ type: 'sim', ev: { kind: 'gift', user: someone(), giftName: 'Rose', coins: 1 } }),
+    gift5: () => send({ type: 'sim', ev: { kind: 'gift', user: someone(), giftName: 'Finger Heart', coins: 5 } }),
+    gift10: () => send({ type: 'sim', ev: { kind: 'gift', user: someone(), giftName: 'Rosa', coins: 10 } }),
+    gift100: () => send({ type: 'sim', ev: { kind: 'gift', user: someone(), giftName: 'Confetti', coins: 100 } }),
+  };
+  document.querySelectorAll('[data-sim]').forEach((b) => b.onclick = () => SIM[b.dataset.sim]());
+
+  let auto = null;
+  $('btnAuto').onclick = () => {
+    if (auto) { clearInterval(auto); auto = null; $('btnAuto').textContent = '▶ Tự chạy'; return; }
+    $('btnAuto').textContent = '⏸ Dừng';
+    auto = setInterval(() => {
+      const r = Math.random();
+      if (r < 0.3) SIM.join(); else if (r < 0.6) SIM.chat(); else if (r < 0.85) SIM.like();
+      else SIM[pick(['gift1', 'gift1', 'gift1', 'gift5', 'gift5', 'gift10', 'gift100'])]();
+    }, 700);
+  };
+  $('btnReset').onclick = () => send({ type: 'reset' });
+  $('btnConnect').onclick = () => { localStorage.setItem('tt-user', $('user').value); send({ type: 'connect', username: $('user').value }); };
+  $('btnStop').onclick = () => send({ type: 'disconnect' });
+  try { $('user').value = localStorage.getItem('tt-user') || ''; } catch {}
+
+  const LABEL = { idle: 'Chưa kết nối', connecting: 'Đang kết nối…', connected: 'Đã kết nối', offline: 'Chưa live / đã tắt live', error: 'Lỗi' };
+  function log(text) {
+    const el = document.createElement('div');
+    el.textContent = new Date().toLocaleTimeString('vi-VN') + '  ' + text;
+    $('log').prepend(el);
+    while ($('log').children.length > 200) $('log').lastChild.remove();
+  }
+  function describe(ev) {
+    const n = ev.user?.name || '';
+    return { join: `${n} vào điện`, chat: `${n}: ${ev.text}`, like: `${n} thả ${ev.count} tim`, follow: `${n} theo dõi`, share: `${n} chia sẻ`,
+      gift: `${n} tặng ${ev.gift?.name} ×${ev.count} (${ev.total} xu) → ${ev.label}`, blessing: `Cả điện đạt ${ev.likes} tim` }[ev.kind] || ev.kind;
+  }
+  function connect() {
+    ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+    ws.onmessage = (m) => {
+      const msg = JSON.parse(m.data);
+      if (msg.type === 'state') {
+        $('dot').className = 'dot ' + msg.status;
+        $('statusText').textContent = LABEL[msg.status] + (msg.message ? ' · ' + msg.message : '');
+        $('sViewers').textContent = msg.viewers.toLocaleString('vi-VN');
+        $('sLikes').textContent = msg.likes.toLocaleString('vi-VN');
+        $('sCoins').textContent = msg.coins.toLocaleString('vi-VN');
+        if (!$('user').value && msg.username) $('user').value = msg.username;
+      } else if (msg.type === 'event' && msg.ev.kind !== 'like') log(describe(msg.ev));
+    };
+    ws.onclose = () => { $('statusText').textContent = 'Mất kết nối tới server, đang thử lại…'; setTimeout(connect, 2000); };
+  }
+  connect();
+</script>
+</body>
+</html>
