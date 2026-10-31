@@ -1,12 +1,13 @@
 {
-  "name": "live-tiktok-pgd",
+  "name": "tiktok-live-kit",
   "version": "1.0.0",
-  "description": "Chùa ảo tương tác cho TikTok LIVE: người xem vào điện, bình luận, thả tim, tặng quà để dâng hương / lễ Phật / dâng hoa sen.",
+  "description": "Bộ khung chung cho game tương tác TikTok LIVE: nguồn TikFinity/trực tiếp, luật quà, xếp hạng, theme thay được (chùa ảo, ...).",
   "type": "module",
   "private": true,
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=20"

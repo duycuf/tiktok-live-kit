@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TikTok Live Kit</title>
+<link rel="stylesheet" href="control.css">
+</head>
+<body>
+<header>
+  <div class="brand">🎛️ TikTok Live Kit</div>
+  <label class="theme">Theme
+    <select id="themeSel"></select>
+  </label>
+  <div class="ov">Overlay: <code id="ovUrl"></code> <button class="ghost sm" id="copyOv">Chép</button></div>
+</header>
+
+<main>
+  <div class="col">
+    <section>
+      <h2>Kết nối live</h2>
+      <div class="row">
+        <select id="provider" title="Nguồn dữ liệu">
+          <option value="auto">Tự động (TikFinity → trực tiếp)</option>
+          <option value="tikfinity">TikFinity Desktop</option>
+          <option value="connector">Trực tiếp (không cần TikFinity)</option>
+        </select>
+        <input id="user" placeholder="Tên kênh TikTok, vd: tranvankhai" autocomplete="off">
+        <button class="primary" id="btnConnect">Kết nối</button>
+        <button id="btnStop">Ngắt</button>
+      </div>
+      <div class="status"><span class="dot" id="dot"></span><span id="statusText">Chưa kết nối</span><span class="muted" id="lastEv"></span></div>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section>
+      <h2>Test Lab <span class="muted">· người xem giả, đi qua đúng đường ống như live thật</span></h2>
+      <div class="row" id="simRow"></div>
+      <div class="row">
+        <span class="muted">Tự chạy:</span>
+        <button data-rate="0">Tắt</button><button data-rate="1">Vừa</button><button data-rate="3">Đông</button><button data-rate="10">Cực đông</button>
+      </div>
+      <h3>Xem thử từng hiệu ứng của theme</h3>
+      <div class="row" id="actionRow"></div>
+    </section>
+
+    <section>
+      <h2>Luật tương tác</h2>
+      <div class="grid2">
+        <label>Ai được vào sân
+          <select id="joinMode">
+            <option value="all">Mọi người tương tác (vào live, tim, chat...)</option>
+            <option value="keyword">Chỉ khi chat từ khoá, tặng quà, theo dõi, chia sẻ</option>
+          </select>
+        </label>
+        <label>Từ khoá vào sân <input id="joinKeywords" placeholder="cách nhau dấu phẩy"></label>
+        <label>Quà lớn từ (xu) <input id="bigGiftCoins" type="number" min="1"></label>
+      </div>
+
+      <h3>Bậc quà theo giá một món</h3>
+      <table><thead><tr><th>Từ (xu)</th><th>Hành động</th><th>Chữ hiển thị</th><th></th></tr></thead><tbody id="tiers"></tbody></table>
+      <button class="sm" id="addTier">+ Thêm bậc</button>
+
+      <h3>Quà riêng <span class="muted">· ưu tiên hơn bậc giá</span></h3>
+      <table><thead><tr><th>ID quà</th><th>Tên / bí danh</th><th>Hành động</th><th>Chữ hiển thị</th><th></th></tr></thead><tbody id="overrides"></tbody></table>
+      <div class="row">
+        <select id="catalog"><option value="">+ Chọn từ quà đã gặp trên live…</option></select>
+        <button class="sm" id="addOverride">+ Thêm trống</button>
+      </div>
+
+      <h3>Lệnh chat</h3>
+      <table><thead><tr><th>Từ khoá</th><th>Khớp</th><th>Hành động</th><th>Chữ</th><th>Chờ (s)</th><th></th></tr></thead><tbody id="commands"></tbody></table>
+      <button class="sm" id="addCommand">+ Thêm lệnh</button>
+
+      <div class="row end">
+        <span class="muted" id="rulesMsg"></span>
+        <button class="ghost" id="resetRules">Về mặc định của theme</button>
+        <button class="primary" id="saveRules">Lưu luật</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Nhật ký</h2>
+      <div id="log"></div>
+    </section>
+  </div>
+
+  <div class="col side">
+    <div class="preview"><iframe id="preview" src="/overlay?quiet" title="Xem trước overlay"></iframe></div>
+    <section>
+      <h2>Bảng xếp hạng</h2>
+      <ol id="top"></ol>
+      <div class="row">
+        <a class="btn" href="/api/export.csv">Tải CSV</a>
+        <button class="danger" id="btnReset">Phiên mới</button>
+      </div>
+    </section>
+    <section>
+      <h2>Mục tiêu</h2>
+      <div id="goals"></div>
+    </section>
+  </div>
+</main>
+<script src="control.js"></script>
+</body>
+</html>

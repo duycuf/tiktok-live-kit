@@ -1,214 +1,234 @@
+// TikTok Live Kit: lõi dùng chung. Nguồn live → đường ống → WebSocket → theme (overlay) + bảng điều khiển.
+
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { TikTokLiveConnection, WebcastEvent, ControlEvent } from 'tiktok-live-connector';
-import { normUser, normGift, likeCount, totalLikes, viewerCount } from './tiktok.js';
+import { createEngine } from './core/engine.js';
+import { createSession } from './core/session.js';
+import { createGiftCatalog } from './core/gift-catalog.js';
+import { sanitizeRules } from './core/rules.js';
+import { createManager } from './providers/manager.js';
+import { createDemo } from './providers/demo.js';
+import { listThemes, loadTheme } from './themes.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PUBLIC = path.join(ROOT, 'public');
-const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
+const DATA = path.join(ROOT, 'data');
+// config.json là mặc định (trong git); lựa chọn đổi lúc chạy (kênh, nguồn, theme) lưu riêng ở data/settings.json
+const SETTINGS_FILE = path.join(DATA, 'settings.json');
+const readJson = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return {}; } };
+const settings = readJson(SETTINGS_FILE);
+const config = { ...readJson(path.join(ROOT, 'config.json')), ...settings };
 const PORT = Number(process.env.PORT || config.port || 3939);
+const HOST = process.env.HOST || config.host || '127.0.0.1';
 
-// ---------- Trạng thái phiên live ----------
-const state = {
-  status: 'idle', // idle | connecting | connected | offline | error
-  username: process.env.TIKTOK_USERNAME || config.tiktokUsername || '',
-  message: '',
-  viewers: 0,
-  likes: 0,
-  coins: 0,
-  donors: new Map(), // id -> { id, name, avatar, coins }
-};
-let lastBlessingAt = 0;
+// ---------- Theme, luật, phiên ----------
+let theme, rules, session, engine;
+const catalog = createGiftCatalog(path.join(DATA, 'gifts.json'));
+const rulesFile = (id) => path.join(DATA, `rules-${id}.json`);
 
-const tiers = [...config.giftTiers].sort((a, b) => b.minCoins - a.minCoins);
-const tierFor = (coins) => tiers.find((t) => coins >= t.minCoins) || tiers[tiers.length - 1];
+function activate(themeId) {
+  theme = loadTheme(path.join(ROOT, 'themes'), themeId);
+  const actionIds = theme.actions.map((a) => a.id);
+  let saved = null;
+  try { saved = JSON.parse(fs.readFileSync(rulesFile(theme.id), 'utf8')); } catch {}
+  rules = sanitizeRules(saved || theme.rules, actionIds);
+  session?.save();
+  session = createSession({
+    file: path.join(DATA, `session-${theme.id}.json`),
+    titles: theme.titles || [],
+    goals: theme.goals || [],
+    playerTtlMs: (config.playerTtlMinutes || 20) * 60000,
+  });
+  engine = createEngine({
+    getRules: () => rules,
+    session,
+    catalog,
+    emit: (ev) => { if (ev.internal) { broadcast({ type: 'gifts', gifts: catalog.list() }, 'control'); return; } broadcast({ type: 'event', ev }); },
+    onChange: () => pushState(),
+    maxJoinsPerSecond: config.maxJoinsPerSecond || 15,
+  });
+  console.log(`[theme] ${theme.name} (${theme.id})`);
+}
+activate(process.env.THEME || config.theme || 'starter');
 
-function leaderboard() {
-  return [...state.donors.values()].sort((a, b) => b.coins - a.coins).slice(0, 5);
+function saveConfig(patch) {
+  Object.assign(config, patch);
+  Object.assign(settings, patch);
+  fs.mkdirSync(DATA, { recursive: true });
+  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
 }
 
-function snapshot() {
-  return {
-    type: 'state',
-    status: state.status,
-    username: state.username,
-    message: state.message,
-    viewers: state.viewers,
-    likes: state.likes,
-    coins: state.coins,
-    top: leaderboard(),
-    config: {
-      hallName: config.hallName,
-      host: config.host,
-      maxDevotees: config.maxDevotees,
-      giftTiers: config.giftTiers,
-      likesPerBlessing: config.likesPerBlessing,
-    },
-  };
+// ---------- HTTP ----------
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav', '.mp4': 'video/mp4', '.webm': 'video/webm', '.glb': 'model/gltf-binary', '.woff2': 'font/woff2', '.ico': 'image/x-icon' };
+
+function serveFile(res, base, rel) {
+  const file = path.normalize(path.join(base, rel));
+  if (!file.startsWith(base + path.sep) && file !== base) return res.writeHead(403).end();
+  fs.stat(file, (err, st) => {
+    if (err) return res.writeHead(404).end('Not found');
+    const target = st.isDirectory() ? path.join(file, 'index.html') : file;
+    fs.readFile(target, (e, buf) => {
+      if (e) return res.writeHead(404).end('Not found');
+      res.writeHead(200, { 'Content-Type': MIME[path.extname(target).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+      res.end(buf);
+    });
+  });
 }
 
-// ---------- WebSocket tới overlay và bảng điều khiển ----------
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.ico': 'image/x-icon' };
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+const hostOk = (h) => config.allowLan || LOCAL_HOSTS.has(String(h || '').replace(/:\d+$/, '').toLowerCase());
 
 const server = http.createServer((req, res) => {
+  if (!hostOk(req.headers.host)) return res.writeHead(403).end('Forbidden host');
   const url = new URL(req.url, 'http://x');
-  let file = path.normalize(path.join(PUBLIC, decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname)));
-  if (!file.startsWith(PUBLIC)) return res.writeHead(403).end();
-  if (!path.extname(file)) file += '.html';
-  fs.readFile(file, (err, buf) => {
-    if (err) return res.writeHead(404).end('Not found');
-    res.writeHead(200, { 'Content-Type': (MIME[path.extname(file)] || 'application/octet-stream') + '; charset=utf-8', 'Cache-Control': 'no-cache' });
-    res.end(buf);
-  });
+  const p = decodeURIComponent(url.pathname);
+  if (p === '/') return res.writeHead(302, { Location: '/control/' }).end();
+  if (p === '/overlay' || p === '/overlay/') return res.writeHead(302, { Location: `/themes/${theme.id}/${url.search}` }).end();
+  if (p === '/api/health') return json(res, { status: 'ok', app: 'tiktok-live-kit', theme: theme.id, live: manager.status.state });
+  if (p === '/api/export.csv') {
+    res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="top-${theme.id}-${new Date().toISOString().slice(0, 10)}.csv"` });
+    return res.end(session.csv());
+  }
+  if (p.startsWith('/control/')) return serveFile(res, path.join(ROOT, 'public', 'control'), p.slice(9) || 'index.html');
+  if (p.startsWith('/sdk/')) return serveFile(res, path.join(ROOT, 'public', 'sdk'), p.slice(5));
+  if (p.startsWith('/themes/')) return serveFile(res, path.join(ROOT, 'themes'), p.slice(8));
+  res.writeHead(404).end('Not found');
+});
+const json = (res, obj) => res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }).end(JSON.stringify(obj));
+
+// ---------- WebSocket ----------
+const wss = new WebSocketServer({
+  server, path: '/ws', maxPayload: 256 * 1024,
+  verifyClient: ({ origin, req }) => {
+    if (!hostOk(req.headers.host)) return false;
+    if (!origin) return true; // client gốc (game Unity, script) không gửi Origin
+    try { return config.allowLan || LOCAL_HOSTS.has(new URL(origin).hostname); } catch { return false; }
+  },
 });
 
-const wss = new WebSocketServer({ server, path: '/ws' });
-const broadcast = (msg) => {
+const send = (ws, msg) => { if (ws.readyState === 1) ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg)); };
+function broadcast(msg, role) {
   const data = JSON.stringify(msg);
-  for (const c of wss.clients) if (c.readyState === 1) c.send(data);
+  for (const c of wss.clients) if (c.role && (!role || c.role === role)) send(c, data);
+}
+
+let stateTimer = null;
+function stateMsg() {
+  return {
+    type: 'state',
+    viewers: session.data.viewers,
+    totals: session.data.totals,
+    top: session.top(10),
+    goals: session.goalsView(),
+    live: manager.status,
+    demo: demo.running,
+    lastEventAgo: engine.lastEventAt ? Date.now() - engine.lastEventAt : null,
+  };
+}
+function pushState() {
+  if (stateTimer) return;
+  stateTimer = setTimeout(() => { stateTimer = null; broadcast(stateMsg()); }, 250);
+}
+
+const publicTheme = () => ({ id: theme.id, name: theme.name, width: theme.width, height: theme.height, actions: theme.actions, titles: theme.titles, text: theme.text || {} });
+
+function init(ws) {
+  const base = { type: 'init', theme: publicTheme(), state: stateMsg() };
+  if (ws.role === 'control') send(ws, { ...base, rules, gifts: catalog.list(), themes: listThemes(path.join(ROOT, 'themes')), config: { provider: config.provider || 'auto', tiktokUsername: config.tiktokUsername || '', tikfinityUrl: config.tikfinityUrl } });
+  else send(ws, { ...base, players: session.active(config.snapshotPlayers || 300) });
+}
+
+const demo = createDemo({ onEvent: (ev) => engine.ingest(ev, { simulated: true }) });
+
+const CONTROL = {
+  async connect(m) {
+    demo.stop();
+    saveConfig({ tiktokUsername: String(m.username || '').replace(/^@/, '').trim(), provider: ['auto', 'tikfinity', 'connector'].includes(m.provider) ? m.provider : 'auto' });
+    manager.connect(config.tiktokUsername, config.provider);
+  },
+  async disconnect() { await manager.stop(); },
+  sim(m) { demo.fire(m.kind, m.arg, m.arg2); },
+  demo(m) { demo.auto(Number(m.rate) || 0); pushState(); },
+  test(m) {
+    // Bắn thẳng một hành động của theme để xem hiệu ứng, không cộng điểm
+    const a = theme.actions.find((x) => x.id === m.action);
+    if (!a) return;
+    const p = session.active(1)[0] || { id: 'test', name: 'Người thử', avatar: '', coins: 0, title: '', rank: 0 };
+    broadcast({ type: 'event', ev: { kind: 'gift', at: Date.now(), user: { ...p, isPlayer: true }, gift: { id: '', name: 'Thử', image: '', coins: 0 }, count: 1, total: 0, action: a.id, label: a.label, big: Boolean(m.big), test: true } });
+  },
+  reset() { session.reset(); engine.reset(); broadcast({ type: 'reset' }); pushState(); },
+  saveRules(m) {
+    rules = sanitizeRules(m.rules, theme.actions.map((a) => a.id));
+    fs.mkdirSync(DATA, { recursive: true });
+    fs.writeFileSync(rulesFile(theme.id), JSON.stringify(rules, null, 2));
+    broadcast({ type: 'rules', rules }, 'control');
+  },
+  resetRules() { try { fs.unlinkSync(rulesFile(theme.id)); } catch {} rules = sanitizeRules(theme.rules, theme.actions.map((a) => a.id)); broadcast({ type: 'rules', rules }, 'control'); },
+  setTheme(m) {
+    if (!listThemes(path.join(ROOT, 'themes')).some((t) => t.id === m.id)) return;
+    saveConfig({ theme: m.id });
+    activate(m.id);
+    broadcast({ type: 'reload' }, 'overlay');
+    for (const c of wss.clients) if (c.role === 'control') init(c);
+  },
 };
-const emit = (ev) => broadcast({ type: 'event', ev: { ...ev, at: Date.now() } });
-const pushState = () => broadcast(snapshot());
 
 wss.on('connection', (ws) => {
-  ws.send(JSON.stringify(snapshot()));
-  ws.on('message', (raw) => {
-    let msg;
-    try { msg = JSON.parse(raw); } catch { return; }
-    if (msg.type === 'connect') connectTikTok(String(msg.username || '').replace(/^@/, '').trim());
-    else if (msg.type === 'disconnect') disconnectTikTok();
-    else if (msg.type === 'sim') handleSim(msg.ev);
-    else if (msg.type === 'reset') { state.donors.clear(); state.coins = 0; state.likes = 0; pushState(); }
+  ws.role = null;
+  ws.alive = true;
+  ws.budget = { at: Date.now(), n: 0 };
+  ws.on('pong', () => { ws.alive = true; });
+  ws.on('message', async (raw, isBinary) => {
+    if (isBinary) return ws.close(1003, 'text only');
+    const now = Date.now();
+    if (now - ws.budget.at > 5000) ws.budget = { at: now, n: 0 };
+    if (++ws.budget.n > 120) return ws.close(1008, 'rate limit');
+    let m;
+    try { m = JSON.parse(raw); } catch { return; }
+    if (!m || typeof m.type !== 'string') return;
+    if (m.type === 'hello') {
+      if (!['control', 'overlay'].includes(m.role)) return send(ws, { type: 'error', message: 'role không hợp lệ' });
+      ws.role = m.role;
+      return init(ws);
+    }
+    if (m.type === 'ping') return send(ws, { type: 'pong', t: m.t });
+    if (ws.role !== 'control') return send(ws, { type: 'error', message: 'Lệnh chỉ dành cho bảng điều khiển' });
+    const fn = CONTROL[m.type];
+    if (!fn) return;
+    try { await fn(m); } catch (err) { console.error('[control]', m.type, err); send(ws, { type: 'error', message: String(err.message || err) }); }
   });
 });
 
-// ---------- Xử lý sự kiện (dùng chung cho live thật và giả lập) ----------
-function onJoin(user) { emit({ kind: 'join', user }); }
-function onChat(user, text) { emit({ kind: 'chat', user, text: String(text).slice(0, 80) }); }
+const heartbeat = setInterval(() => {
+  for (const c of wss.clients) { if (!c.alive) { c.terminate(); continue; } c.alive = false; c.ping(); }
+  if (manager.status.state === 'connected') pushState(); // cập nhật "sự kiện cuối cách đây"
+}, 15000);
 
-function onLike(user, count, total) {
-  state.likes = total || state.likes + count;
-  emit({ kind: 'like', user, count });
-  const step = config.likesPerBlessing || 0;
-  if (step && Math.floor(state.likes / step) > lastBlessingAt) {
-    lastBlessingAt = Math.floor(state.likes / step);
-    emit({ kind: 'blessing', likes: lastBlessingAt * step });
-  }
-  pushState();
-}
+// ---------- Kết nối live ----------
+const manager = createManager({
+  config,
+  onEvent: (ev) => engine.ingest(ev),
+  onStatus: () => pushState(),
+  lastEventAt: () => engine.lastEventAt,
+});
 
-function onGift(user, gift, count) {
-  const total = gift.coins * count;
-  const donor = state.donors.get(user.id) || { ...user, coins: 0 };
-  donor.coins += total;
-  donor.name = user.name;
-  donor.avatar = user.avatar || donor.avatar;
-  state.donors.set(user.id, donor);
-  state.coins += total;
-  const tier = tierFor(gift.coins);
-  emit({ kind: 'gift', user, gift: { name: gift.name, image: gift.image, coins: gift.coins }, count, total, action: tier.action, label: tier.label });
-  pushState();
-}
-
-function onFollow(user) { emit({ kind: 'follow', user }); }
-function onShare(user) { emit({ kind: 'share', user }); }
-
-function handleSim(ev = {}) {
-  const user = ev.user || { id: 'khach', name: 'Khách', avatar: '' };
-  if (ev.kind === 'join') onJoin(user);
-  else if (ev.kind === 'chat') onChat(user, ev.text || 'Nam Mô A Di Đà Phật');
-  else if (ev.kind === 'like') onLike(user, ev.count || 5, 0);
-  else if (ev.kind === 'gift') onGift(user, { name: ev.giftName || 'Quà', image: '', coins: ev.coins || 1 }, ev.count || 1);
-  else if (ev.kind === 'follow') onFollow(user);
-  else if (ev.kind === 'share') onShare(user);
-  else if (ev.kind === 'viewers') { state.viewers = ev.count || 0; pushState(); }
-}
-
-// ---------- Kết nối TikTok LIVE ----------
-let conn = null;
-let retryTimer = null;
-let wanted = false;
-const streaks = new Map(); // quà bấm liên tiếp: chỉ tính phần tăng thêm của repeatCount
-
-function setStatus(status, message = '') {
-  state.status = status;
-  state.message = message;
-  console.log(`[tiktok] ${status}${message ? ': ' + message : ''}`);
-  pushState();
-}
-
-function scheduleRetry() {
-  clearTimeout(retryTimer);
-  if (!wanted || !config.autoReconnectSeconds) return;
-  retryTimer = setTimeout(() => connectTikTok(state.username), config.autoReconnectSeconds * 1000);
-}
-
-async function connectTikTok(username) {
-  if (!username) return setStatus('error', 'Chưa nhập tên TikTok');
-  await disconnectTikTok(true);
-  wanted = true;
-  state.username = username;
-  setStatus('connecting', '@' + username);
-
-  const c = new TikTokLiveConnection(username, {
-    enableExtendedGiftInfo: true,
-    processInitialData: false,
-    ...(config.signApiKey || process.env.EULER_API_KEY ? { signApiKey: config.signApiKey || process.env.EULER_API_KEY } : {}),
-  });
-  conn = c;
-
-  c.on(WebcastEvent.MEMBER, (d) => onJoin(normUser(d.user)));
-  c.on(WebcastEvent.CHAT, (d) => onChat(normUser(d.user), d.comment || d.content || ''));
-  c.on(WebcastEvent.LIKE, (d) => onLike(normUser(d.user), likeCount(d), totalLikes(d)));
-  c.on(WebcastEvent.FOLLOW, (d) => onFollow(normUser(d.user)));
-  c.on(WebcastEvent.SHARE, (d) => onShare(normUser(d.user)));
-  c.on(WebcastEvent.ROOM_USER, (d) => { state.viewers = viewerCount(d); pushState(); });
-  c.on(WebcastEvent.GIFT, (d) => {
-    const user = normUser(d.user);
-    const gift = normGift(d);
-    if (!gift.streakable) return onGift(user, gift, gift.repeatCount);
-    const key = `${user.id}:${gift.giftId}:${gift.groupId}`;
-    const delta = gift.repeatCount - (streaks.get(key) || 0);
-    if (delta > 0) onGift(user, gift, delta);
-    if (gift.repeatEnd) streaks.delete(key);
-    else streaks.set(key, gift.repeatCount);
-  });
-  c.on(WebcastEvent.STREAM_END, () => { setStatus('offline', 'Buổi live đã kết thúc'); scheduleRetry(); });
-  c.on(ControlEvent.DISCONNECTED, () => {
-    if (conn !== c) return;
-    if (state.status === 'connected') setStatus('offline', 'Mất kết nối, đang thử lại');
-    scheduleRetry();
-  });
-  c.on(ControlEvent.ERROR, (e) => console.warn('[tiktok] error', e?.info || e?.message || e));
-
-  try {
-    const s = await c.connect();
-    if (conn !== c) return;
-    setStatus('connected', `@${username} · room ${s.roomId}`);
-  } catch (err) {
-    if (conn !== c) return;
-    const offline = /offline|not live|isn't online/i.test(String(err?.message || err?.name || ''));
-    setStatus(offline ? 'offline' : 'error', offline ? `@${username} chưa lên live, sẽ tự thử lại` : String(err?.message || err));
-    scheduleRetry();
-  }
-}
-
-async function disconnectTikTok(keepWanted = false) {
-  clearTimeout(retryTimer);
-  if (!keepWanted) wanted = false;
-  const c = conn;
-  conn = null;
-  streaks.clear();
-  if (c) { try { await c.disconnect(); } catch {} }
-  if (!keepWanted) setStatus('idle');
-}
-
-server.listen(PORT, () => {
-  console.log(`\n  Chùa ảo đang chạy:`);
+server.listen(PORT, HOST, () => {
+  console.log(`\n  TikTok Live Kit · theme: ${theme.name}`);
   console.log(`  - Bảng điều khiển: http://localhost:${PORT}/`);
-  console.log(`  - Overlay (OBS / TikTok LIVE Studio): http://localhost:${PORT}/overlay\n`);
-  if (state.username) connectTikTok(state.username);
+  console.log(`  - Overlay (OBS Browser source, ${theme.width}x${theme.height}): http://localhost:${PORT}/overlay\n`);
+  if (config.autoConnect && (config.tiktokUsername || config.provider === 'tikfinity')) manager.connect(config.tiktokUsername, config.provider);
 });
+
+async function shutdown() {
+  clearInterval(heartbeat);
+  demo.stop();
+  session.save();
+  await manager.stop();
+  process.exit(0);
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+process.on('uncaughtException', (err) => console.error('[lỗi chưa bắt]', err));
+process.on('unhandledRejection', (err) => console.error('[promise lỗi]', err));

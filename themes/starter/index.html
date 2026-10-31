@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Theme mẫu</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0d17; font-family: system-ui, sans-serif; color: #fff; }
+  #stage { background: radial-gradient(ellipse at 50% 30%, #2b2f6b 0%, #0b0d17 70%); overflow: hidden; }
+  h1 { position: absolute; top: 240px; width: 100%; text-align: center; margin: 0; font-size: 64px; letter-spacing: 2px; text-shadow: 0 0 30px #7c83ff; }
+  #crowd { position: absolute; left: 40px; right: 40px; top: 420px; bottom: 420px; }
+  .p { position: absolute; width: 96px; text-align: center; transition: left .8s, top .8s, transform .4s; }
+  .p img, .p .av { width: 76px; height: 76px; border-radius: 50%; border: 3px solid #7c83ff; object-fit: cover; background: #3a3f80; display: block; margin: 0 auto; }
+  .p .nm { font-size: 18px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p.vip img, .p.vip .av { border-color: #ffd34d; box-shadow: 0 0 20px #ffd34d; }
+  .bubble { position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%); background: #fff; color: #111; padding: 6px 12px; border-radius: 14px; font-size: 18px; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+  .pop { animation: pop .7s ease-out; }
+  @keyframes pop { 30% { transform: translateY(-40px) scale(1.3); } 100% { transform: none; } }
+  .wave { animation: wave .9s ease-in-out 2; }
+  @keyframes wave { 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+  .heart { position: absolute; font-size: 30px; animation: up 1.6s ease-out forwards; pointer-events: none; }
+  @keyframes up { to { transform: translateY(-220px) scale(1.4); opacity: 0; } }
+  .confetti { position: absolute; top: -20px; width: 14px; height: 22px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(2000px) rotate(720deg); } }
+  #spot { position: absolute; inset: 0; display: none; place-items: center; background: rgba(0,0,0,.6); }
+  #spot.on { display: grid; animation: fade .4s; }
+  #spot img, #spot .av { width: 300px; height: 300px; border-radius: 50%; border: 8px solid #ffd34d; box-shadow: 0 0 80px #ffd34d; object-fit: cover; background: #3a3f80; }
+  #spot .t { text-align: center; font-size: 54px; font-weight: 800; margin-top: 24px; }
+  @keyframes fade { from { opacity: 0; } }
+  #bottom { position: absolute; left: 40px; right: 40px; bottom: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .box { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); border-radius: 18px; padding: 16px 20px; font-size: 24px; }
+  .box h3 { margin: 0 0 8px; font-size: 22px; color: #aab0ff; }
+  #goalBar { height: 16px; border-radius: 99px; background: rgba(255,255,255,.15); overflow: hidden; margin-top: 8px; }
+  #goalFill { height: 100%; width: 0; background: linear-gradient(90deg, #7c83ff, #ff7cd1); transition: width .5s; }
+  #toast { position: absolute; top: 340px; width: 100%; text-align: center; font-size: 40px; font-weight: 800; opacity: 0; transition: opacity .3s; text-shadow: 0 0 20px #ff7cd1; }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <h1 id="title">TikTok Live Kit</h1>
+  <div id="toast"></div>
+  <div id="crowd"></div>
+  <div id="spot"><div><div id="spotAv"></div><div class="t" id="spotText"></div></div></div>
+  <div id="bottom">
+    <div class="box"><h3>TOP</h3><div id="top">—</div></div>
+    <div class="box"><h3 id="goalLabel">Mục tiêu</h3><div id="goalText">0</div><div id="goalBar"><div id="goalFill"></div></div></div>
+  </div>
+</div>
+<script src="/sdk/live-sdk.js"></script>
+<script src="overlay.js"></script>
+</body>
+</html>

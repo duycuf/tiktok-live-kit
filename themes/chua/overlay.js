@@ -15,21 +15,13 @@ const SCENE = {
 };
 
 const params = new URLSearchParams(location.search);
-const DEMO = params.has('demo');
 const BG_URL = params.get('bg') || 'assets/background.jpg';
 
 const canvas = document.getElementById('scene');
 const ctx = canvas.getContext('2d');
 const stage = document.getElementById('stage');
 
-function fit() {
-  const s = Math.min(innerWidth / SCENE.W, innerHeight / SCENE.H);
-  stage.style.left = `${(innerWidth - SCENE.W * s) / 2}px`;
-  stage.style.top = `${(innerHeight - SCENE.H * s) / 2}px`;
-  stage.style.transform = `scale(${s})`;
-}
-addEventListener('resize', fit);
-fit();
+Live.stage(stage, SCENE.W, SCENE.H);
 
 // ---------- Tiện ích ----------
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -49,15 +41,7 @@ function roundRect(x, y, w, h, r) {
 }
 
 const imgCache = new Map();
-function loadImg(url) {
-  if (!url) return null;
-  if (imgCache.has(url)) return imgCache.get(url);
-  const img = new Image();
-  img.referrerPolicy = 'no-referrer';
-  img.src = url;
-  imgCache.set(url, img);
-  return img;
-}
+const loadImg = (url) => Live.img(url);
 
 // ---------- Nền chánh điện (vẽ một lần vào canvas phụ) ----------
 let bgCanvas = null;
@@ -287,7 +271,7 @@ function drawLotus(x, y, s) {
 
 // ---------- Phật tử ----------
 const devotees = new Map();
-let maxDevotees = 180;
+const maxDevotees = Number(params.get('max')) || 180;
 const slots = buildSlots();
 
 function buildSlots() {
@@ -320,10 +304,13 @@ function leave(d) {
   d.fadeStart = now();
 }
 
-function ensureDevotee(user) {
+// instant: đặt thẳng vào chỗ quỳ (dựng lại đám đông khi overlay tải lại), không đi từ cửa vào
+function ensureDevotee(user, { instant = false } = {}) {
   let d = devotees.get(user.id);
   if (d) {
     d.name = user.name || d.name;
+    d.rank = user.rank ?? d.rank;
+    d.title = user.title ?? d.title;
     if (user.avatar && !d.avatar) d.avatar = loadImg(user.avatar);
     return d;
   }
@@ -333,11 +320,13 @@ function ensureDevotee(user) {
   d = {
     id: user.id, name: user.name || 'Phật tử', avatar: loadImg(user.avatar),
     slot, x: SCENE.entry.x + rand(-20, 20), y: SCENE.entry.y, pose: 'stand', bow: 0,
-    tasks: [], task: null, lastActive: now(), bubble: null, aura: 0, tint: rand(-8, 8),
+    tasks: [], task: null, lastActive: instant ? now() - 30000 : now(), bubble: null, aura: 0, tint: rand(-8, 8),
+    rank: user.rank || 0, title: user.title || '',
   };
   slot.taken = d.id;
   devotees.set(user.id, d);
-  queue(d, walkPath(d, [{ x: SCENE.aisleX + rand(-10, 10), y: slot.y }, { x: slot.x, y: slot.y }]), { type: 'kneel' });
+  if (instant) { d.x = slot.x; d.y = slot.y; d.pose = 'kneel'; }
+  else queue(d, walkPath(d, [{ x: SCENE.aisleX + rand(-10, 10), y: slot.y }, { x: slot.x, y: slot.y }]), { type: 'kneel' });
   return d;
 }
 
@@ -439,7 +428,8 @@ function drawTag(d, t) {
   if (!recent) return;
   ctx.save();
   ctx.font = '600 20px "Be Vietnam Pro", system-ui, sans-serif';
-  const name = d.name.length > 14 ? d.name.slice(0, 13) + '…' : d.name;
+  const medal = ['', '🥇 ', '🥈 ', '🥉 '][d.rank] || '';
+  const name = medal + (d.name.length > 14 ? d.name.slice(0, 13) + '…' : d.name);
   const w = ctx.measureText(name).width + 44, h = 30;
   const x = d.x - w / 2, y = headY - h;
   ctx.globalAlpha = d.leaving ? 0 : 0.92;
@@ -511,38 +501,64 @@ const ACTIONS = {
   },
 };
 
-function handleEvent(ev) {
-  const t = now();
-  if (ev.kind === 'blessing') {
-    rays = 1; glow.level = Math.min(1, glow.level + 0.6); lotusRain(30);
-    toast(`Cả điện đã gửi ${ev.likes.toLocaleString('vi-VN')} tim 🙏`);
-    return;
-  }
-  const d = ensureDevotee(ev.user || {});
-  if (!d) return;
-  d.lastActive = t;
-  if (ev.kind === 'chat') d.bubble = { text: ev.text, until: t + 7000 };
-  else if (ev.kind === 'like') hearts(d.x, d.y - 70 * persp(d.y), Math.min(6, Math.ceil(ev.count / 3)));
-  else if (ev.kind === 'follow') { d.bubble = { text: '🙏 Đã theo dõi', until: t + 4000 }; sparkles(d.x, d.y - 60, 10, 25); }
-  else if (ev.kind === 'share') { d.bubble = { text: '🔗 Đã chia sẻ live', until: t + 4000 }; sparkles(d.x, d.y - 60, 10, 25); }
-  else if (ev.kind === 'gift') {
-    (ACTIONS[ev.action] || ACTIONS.incense)(d, ev.count || 1);
-    showBanner(ev);
-  }
+// Lệnh chat "lạy": lạy 3 lạy tại chỗ
+ACTIONS.pray = (d) => queue(d, { type: 'bow', n: 3, per: 1300, onEach: (x) => { x.aura = 0.6; } });
+
+function blessing(text) {
+  rays = 1; glow.level = Math.min(1, glow.level + 0.6); lotusRain(30);
+  toast(text);
 }
+
+function onUser(ev, opts) {
+  const d = ensureDevotee(ev.user || {}, opts);
+  if (d) d.lastActive = now();
+  return d;
+}
+
+Live.on('ready', ({ theme, players }) => {
+  renderCards(theme.actions);
+  if (!bannerBusy) { $('bWho').textContent = theme.text.host || ''; $('bWhat').textContent = theme.text.idle || ''; }
+  // dựng lại đám đông đang có (OBS tải lại trang, mất mạng chốc lát...)
+  for (const p of players.slice(0, maxDevotees).reverse()) if (p.isPlayer !== false) ensureDevotee(p, { instant: true });
+});
+Live.on('join', (ev) => onUser(ev));
+Live.on('chat', (ev) => {
+  if (!ev.user.isPlayer) return;
+  const d = onUser(ev);
+  if (d) d.bubble = { text: ev.text, until: now() + 7000 };
+});
+Live.on('like', (ev) => {
+  const d = ev.user.isPlayer && onUser(ev);
+  if (d) hearts(d.x, d.y - 70 * persp(d.y), Math.min(6, Math.ceil(ev.count / 3)));
+});
+Live.on('follow', (ev) => { const d = onUser(ev); if (d) { d.bubble = { text: '🙏 Đã theo dõi', until: now() + 4000 }; sparkles(d.x, d.y - 60, 10, 25); } });
+Live.on('share', (ev) => { const d = onUser(ev); if (d) { d.bubble = { text: '🔗 Đã chia sẻ live', until: now() + 4000 }; sparkles(d.x, d.y - 60, 10, 25); } });
+Live.on('gift', (ev) => {
+  const d = onUser(ev);
+  if (!d) return;
+  (ACTIONS[ev.action] || ACTIONS.incense)(d, ev.count || 1);
+  if (ev.big && ev.action !== 'grand') { rays = 1; glow.level = 1; }
+  showBanner(ev);
+});
+Live.on('command', (ev) => { const d = onUser(ev); if (d && ACTIONS[ev.action]) ACTIONS[ev.action](d, 1); });
+Live.on('title', (ev) => {
+  const d = onUser(ev);
+  if (d) { d.aura = 1; sparkles(d.x, d.y - 60, 30, 50); }
+  toast(`${ev.user.name} thành ${ev.title} 🪷`);
+});
+Live.on('goal', (ev) => blessing(`${ev.label}: ${ev.value.toLocaleString('vi-VN')} 🙏`));
+Live.on('state', (s) => applyState(s));
+Live.on('reset', () => {
+  for (const d of devotees.values()) leave(d);
+  bannerQ.length = 0;
+});
 
 // ---------- HUD ----------
 const $ = (id) => document.getElementById(id);
-const ICONS = { incense: '🪔', bow: '🙏', lotus: '🪷', grand: '✨' };
-let tiers = [
-  { minCoins: 1, action: 'incense', label: 'Dâng hương', badge: '1 COIN' },
-  { minCoins: 5, action: 'bow', label: 'Lễ Phật', badge: '5 COINS' },
-  { minCoins: 10, action: 'lotus', label: 'Hoa sen', badge: '10+ COINS' },
-];
 
-function renderCards() {
-  $('cards').innerHTML = tiers.filter((x) => !x.hidden).slice(0, 3).map((x) =>
-    `<div class="card panel" data-action="${x.action}"><div class="ico">${ICONS[x.action] || '🪷'}</div><div class="coin">${x.badge}</div><div class="lbl">${x.label}</div></div>`).join('');
+function renderCards(actions = []) {
+  $('cards').innerHTML = actions.filter((x) => x.card).slice(0, 3).map((x) =>
+    `<div class="card panel" data-action="${x.id}"><div class="ico">${x.icon || '🪷'}</div><div class="coin">${esc(x.card)}</div><div class="lbl">${esc(x.label)}</div></div>`).join('');
 }
 
 function renderTop(top = []) {
@@ -558,7 +574,6 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 const bannerQ = [];
 let bannerBusy = false;
-let bannerInit = false;
 function showBanner(ev) { bannerQ.push(ev); if (!bannerBusy) nextBanner(); }
 function nextBanner() {
   const ev = bannerQ.shift();
@@ -579,14 +594,14 @@ function toast(text) {
 }
 
 function applyState(s) {
-  if (s.config) {
-    tiers = s.config.giftTiers || tiers;
-    maxDevotees = s.config.maxDevotees || maxDevotees;
-    renderCards();
-    if (!bannerInit && !bannerBusy) { bannerInit = true; $('bWho').textContent = s.config.host || ''; $('bWhat').textContent = s.config.hallName || ''; }
-  }
   $('viewers').textContent = `👥 ${Number(s.viewers || 0).toLocaleString('vi-VN')}`;
-  $('likes').textContent = `❤️ ${Number(s.likes || 0).toLocaleString('vi-VN')}`;
+  $('likes').textContent = `❤️ ${Number(s.totals?.likes || 0).toLocaleString('vi-VN')}`;
+  const g = s.goals?.[0];
+  if (g) {
+    $('goal').style.display = 'block';
+    $('goalLabel').textContent = `${g.label} ${g.value.toLocaleString('vi-VN')}/${g.target.toLocaleString('vi-VN')}`;
+    $('goalFill').style.width = `${Math.round(g.progress * 100)}%`;
+  }
   renderTop(s.top);
 }
 
@@ -624,50 +639,5 @@ function frame(t) {
   for (let i = list.length - 1; i >= 0; i--) if (devotees.has(list[i].id)) drawTag(list[i], t);
   requestAnimationFrame(frame);
 }
-renderCards();
 renderTop();
 requestAnimationFrame(frame);
-
-// ---------- Kết nối server ----------
-function connectWs() {
-  const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
-  ws.onopen = () => { $('conn').style.display = 'none'; };
-  ws.onmessage = (m) => {
-    const msg = JSON.parse(m.data);
-    if (msg.type === 'event') handleEvent(msg.ev);
-    else if (msg.type === 'state') applyState(msg);
-  };
-  ws.onclose = () => { $('conn').style.display = 'block'; setTimeout(connectWs, 2000); };
-}
-
-// ---------- Demo không cần server: overlay.html?demo ----------
-const FAKE_NAMES = ['Thảo My', 'Hoàng Dương', 'oanh luu', 'Phúc', 'Thị Lê', 'Li.am', 'Pnthinh', 'Minh Tâm', 'An Nhiên', 'Bảo Ngọc', 'Gia Huy', 'Thanh Tú', 'Kim Chi', 'Đức Anh', 'Hải Yến', 'Quang Vinh', 'Ngọc Hân', 'Trúc Lâm', 'Diệu Linh', 'Văn Khải'];
-const FAKE_CHATS = ['Nam Mô A Di Đà Phật', 'A di đà phật 🙏', 'Đi chùa onl nữa hả', 'Cầu cho gia đình bình an', 'Chúc tú mạnh khoẻ', 'Mô Phật', 'Cho đốt 1 cây', 'Con cầu thi đỗ', '🙏🙏🙏', 'Nam mô Quán Thế Âm Bồ Tát'];
-const fakeUser = (i = Math.floor(Math.random() * 400)) => ({ id: 'u' + i, name: i < FAKE_NAMES.length ? FAKE_NAMES[i] : FAKE_NAMES[i % FAKE_NAMES.length] + ' ' + i, avatar: '' });
-const fakeTop = new Map();
-
-function startDemo() {
-  applyState({ viewers: 0, likes: 0, top: [] });
-  let likes = 0;
-  for (let i = 0; i < 60; i++) setTimeout(() => handleEvent({ kind: 'join', user: fakeUser(i) }), i * 120);
-  setInterval(() => {
-    const r = Math.random();
-    const ids = [...devotees.keys()];
-    const known = ids.length ? { ...fakeUser(), id: ids[Math.floor(Math.random() * ids.length)] } : fakeUser();
-    if (known.id.startsWith('u')) known.name = fakeUser(Number(known.id.slice(1))).name;
-    if (r < 0.3) handleEvent({ kind: 'join', user: fakeUser() });
-    else if (r < 0.6) handleEvent({ kind: 'chat', user: known, text: FAKE_CHATS[Math.floor(Math.random() * FAKE_CHATS.length)] });
-    else if (r < 0.85) { const c = Math.ceil(rand(1, 15)); likes += c; handleEvent({ kind: 'like', user: known, count: c }); if (Math.floor(likes / 300) > Math.floor((likes - c) / 300)) handleEvent({ kind: 'blessing', likes: Math.floor(likes / 300) * 300 }); }
-    else {
-      const coins = [1, 1, 1, 5, 5, 10, 30, 100][Math.floor(Math.random() * 8)];
-      const tier = [...tiers].sort((a, b) => b.minCoins - a.minCoins).find((x) => coins >= x.minCoins) || tiers[0];
-      const action = coins >= 100 ? 'grand' : tier.action;
-      const label = coins >= 100 ? 'Đại lễ' : tier.label;
-      fakeTop.set(known.id, { name: known.name, coins: (fakeTop.get(known.id)?.coins || 0) + coins });
-      handleEvent({ kind: 'gift', user: known, action, label, count: 1, total: coins });
-      applyState({ viewers: devotees.size * 7, likes, top: [...fakeTop.values()].sort((a, b) => b.coins - a.coins) });
-    }
-  }, 700);
-}
-
-if (DEMO) startDemo(); else connectWs();

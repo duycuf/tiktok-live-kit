@@ -1,64 +1,114 @@
-# Chùa ảo · TikTok LIVE tương tác
+# TikTok Live Kit
 
-Overlay dọc 1080×1920 cho TikTok LIVE. Mỗi người xem vào live thành một Phật tử áo lam bước vào chánh điện rồi quỳ xuống, trên đầu có tên.
+Bộ khung chung để làm **game / overlay tương tác cho TikTok LIVE**. Người xem vào live, bình luận, thả tim, tặng quà thì nhân vật và hiệu ứng trên màn hình phản ứng theo.
 
-| Người xem làm gì | Trên màn hình |
+Lõi viết một lần. Mỗi chủ đề (chùa ảo, sàn nhảy, đua xe…) là một **theme** cắm vào thư mục `themes/`, đổi ngay trên bảng điều khiển.
+
+| Theme có sẵn | |
 |---|---|
-| Vào live | Phật tử đi từ cuối thảm đỏ vào, quỳ vào chỗ trống |
-| Bình luận | Bong bóng chữ hiện trên đầu người đó |
-| Thả tim | Tim bay lên từ người đó. Cứ đủ `likesPerBlessing` tim thì cả điện được ánh hào quang và mưa cánh sen |
-| Theo dõi / chia sẻ | Bong bóng "Đã theo dõi" / "Đã chia sẻ", lấp lánh |
-| Quà 1 xu | **Dâng hương**: lên lư hương vái 3 vái, khói bốc |
-| Quà 5 xu | **Lễ Phật**: lên bồ đoàn lạy, hào quang quanh người |
-| Quà 10+ xu | **Hoa sen**: sen bay từ người tặng lên bàn thờ, mưa cánh sen |
-| Quà 100+ xu | **Đại lễ**: cả điện cùng lạy, tia sáng toả từ tượng Phật |
+| `chua` · Chùa ảo | Người xem thành Phật tử trong chánh điện: quà 1 xu dâng hương, 5 xu lễ Phật, 10+ xu dâng hoa sen, 100+ xu đại lễ; chat "lạy" để lạy tại chỗ |
+| `starter` · Mẫu | Theme tối giản để nhân bản khi làm chủ đề mới |
 
-Góc dưới có dòng báo quà mới nhất, 3 ô mức quà và bảng **Tấm lòng thành** (top người tặng theo tổng xu).
+## Hạ tầng khi live
+
+```
+TikTok LIVE ──> TikFinity Desktop ──ws://127.0.0.1:21213──┐
+          └──> (dự phòng) kết nối trực tiếp ───────────────┤
+                                                           ▼
+                                    Lõi (Node, cổng 3939)
+                                    lọc trùng · gom combo · luật quà · xếp hạng · danh hiệu · mục tiêu
+                                                           │ WebSocket
+                         ┌─────────────────────────────────┴───────────────┐
+                Bảng điều khiển (/)                               Overlay theme (/overlay)
+                                                                          │
+                                       OBS: nguồn Browser ──> Virtual Camera ──> TikTok LIVE Studio
+                                       (hoặc OBS phát thẳng nếu kênh có stream key)
+```
 
 ## Chạy
 
-Cần Node 20 trở lên.
+Cần Node.js 20 trở lên.
 
-```bash
-pnpm install
-pnpm start
+- Windows: bấm đúp **`run.bat`** (tự cài thư viện, mở server và bảng điều khiển).
+- Hoặc:
+  ```bash
+  pnpm install
+  pnpm start
+  ```
+
+Mở http://localhost:3939/ để vào bảng điều khiển.
+
+## Lên live
+
+1. **TikFinity Desktop**: mở, đăng nhập TikTok, kết nối đúng kênh đang live. Lõi đọc sự kiện từ TikFinity, nên tên kênh nhập ở bảng điều khiển chỉ để hiển thị.
+2. **Bảng điều khiển**: chọn nguồn **Tự động** rồi bấm **Kết nối**.
+   - *Tự động*: thử TikFinity trước. Nếu không thấy thì tự chuyển sang kết nối trực tiếp, cách này cần nhập tên kênh.
+   - *Trực tiếp*: không cần TikFinity, dùng thư viện không chính thức `tiktok-live-connector`.
+3. **OBS**:
+   - Cài đặt → Video, đặt **1080×1920**.
+   - Thêm nguồn **Browser**: `http://localhost:3939/overlay`, 1080×1920.
+   - Bấm **Start Virtual Camera**.
+4. **TikTok LIVE Studio**: thêm nguồn Camera là **OBS Virtual Camera**. Nếu kênh có stream key thì OBS phát thẳng, không cần LIVE Studio.
+
+Mất mạng, TikFinity tắt hay OBS tải lại trang đều không cần thao tác lại:
+- Lõi tự nối lại, giãn dần từ 2 đến 30 giây.
+- Overlay tự nối lại và dựng lại đám đông đang có.
+- Bảng xếp hạng được lưu xuống file, nên tắt mở server không mất.
+
+## Bảng điều khiển
+
+- **Kết nối**: chọn nguồn, xem trạng thái, xem "sự kiện cuối cách đây bao lâu" để biết luồng có đang chạy.
+- **Test Lab**: tạo người xem giả, quà 1/5/10/100 xu, combo, chế độ tự chạy (vừa / đông / cực đông). Sự kiện giả đi qua đúng đường ống như live thật. Có nút xem thử từng hiệu ứng của theme.
+- **Luật tương tác** (sửa trên web, không cần code):
+  - Ai được vào sân: mọi người, hoặc chỉ người chat từ khoá / tặng quà.
+  - Bậc quà theo giá một món.
+  - Quà riêng theo ID hoặc tên. Danh sách tự học các món quà đã gặp trên live.
+  - Lệnh chat có thời gian chờ.
+- **Bảng xếp hạng**: top theo xu, danh hiệu, tải **CSV** sau buổi live để tri ân, nút **Phiên mới**.
+- **Theme**: đổi ngay khi đang chạy, overlay trong OBS tự tải lại.
+
+## Làm theme mới
+
+Xem [docs/THEME.md](docs/THEME.md). Tóm tắt: chép `themes/starter`, sửa `theme.json` (các hành động, luật mặc định, danh hiệu, mục tiêu), rồi viết hàm vẽ cho từng hành động trong `overlay.js`. Theme vẽ bằng gì cũng được (DOM, Canvas, Three.js). Game ngoài như Unity cũng nối được vào WebSocket `/ws` với `{"type":"hello","role":"overlay"}`.
+
+## Cấu trúc
+
+```
+src/
+  server.js            HTTP + WebSocket, phân quyền control/overlay, nạp theme
+  core/
+    normalize.js       dữ liệu thô của mọi nguồn → một dạng sự kiện chung
+    streaks.js         gom quà combo (chỉ tính phần tăng, không cộng trùng)
+    rules.js           luật: ID quà → tên quà → bậc giá; lệnh chat; từ khoá vào sân
+    engine.js          đường ống: lọc trùng → combo → luật → phiên → phát sự kiện
+    session.js         người chơi, xếp hạng, danh hiệu, mục tiêu, lưu file, xuất CSV
+    gift-catalog.js    ghi nhớ quà đã gặp
+  providers/           tikfinity · connector (trực tiếp) · demo · manager (nối lại, chuyển nguồn, canh im lặng)
+public/
+  control/             bảng điều khiển
+  sdk/live-sdk.js      SDK cho theme
+themes/<id>/           theme.json + index.html + overlay.js + assets/
+data/                  (không vào git) settings, luật đã chỉnh, phiên live, danh sách quà
+test/                  pnpm test
 ```
 
-- Bảng điều khiển: http://localhost:3939/ (nhập tên TikTok, bấm Kết nối, có nút giả lập để thử khi chưa live)
-- Overlay: http://localhost:3939/overlay
-- Xem thử không cần server: mở `overlay?demo`
+## Cấu hình
 
-## Đưa lên live
+`config.json` là cấu hình mặc định. Những gì đổi trên bảng điều khiển (kênh, nguồn, theme) được lưu riêng ở `data/settings.json`.
 
-1. Mở **TikTok LIVE Studio** (hoặc OBS), thêm nguồn **Link / Browser source** trỏ tới `http://localhost:3939/overlay`, khung 1080×1920.
-2. Lên live trên kênh.
-3. Ở bảng điều khiển nhập tên kênh (không cần `@`), bấm **Kết nối**. Nếu kênh chưa live, server tự thử lại mỗi `autoReconnectSeconds` giây.
-
-Có thể điền sẵn `tiktokUsername` trong `config.json` (hoặc biến môi trường `TIKTOK_USERNAME`) để server tự kết nối khi chạy.
-
-## Tuỳ chỉnh
-
-`config.json`:
-
-- `giftTiers`: mức xu → hành động (`incense`, `bow`, `lotus`, `grand`). Mức tính theo **giá một món quà** (Rose 1 xu là dâng hương); tặng liên tiếp ×N thì lặp lại hành động và cộng đủ xu vào bảng xếp hạng.
-- `hallName`, `host`: chữ hiện ở dòng báo khi chưa có quà.
-- `maxDevotees`: số Phật tử tối đa trong điện. Đầy thì người im lặng lâu nhất ra về nhường chỗ.
-- `likesPerBlessing`: bao nhiêu tim thì cả điện được ban phước.
-- `signApiKey`: key Euler Stream nếu bị giới hạn lượt kết nối (xem bên dưới).
-
-Ảnh nền: mặc định vẽ bằng code. Muốn nền đẹp như ảnh AI thì bỏ một ảnh dọc vào `public/assets/background.jpg`, overlay tự dùng. Nếu đổi ảnh, chỉnh toạ độ lư hương, bồ đoàn, sàn quỳ trong object `SCENE` đầu file `public/overlay.js` cho khớp.
-
-## Cách hoạt động
-
-```
-TikTok LIVE ──(tiktok-live-connector)──> src/server.js ──WebSocket /ws──> overlay + bảng điều khiển
-```
-
-- `src/server.js`: kết nối live, gom quà tặng liên tiếp (chỉ tính phần tăng thêm), cộng bảng xếp hạng, phát sự kiện đã chuẩn hoá.
-- `src/tiktok.js`: chuẩn hoá dữ liệu thô của thư viện (tên trường hay đổi giữa các bản).
-- `public/overlay.js`: vẽ chánh điện bằng canvas, điều khiển nhân vật và hiệu ứng.
+| Khoá | Ý nghĩa |
+|---|---|
+| `port`, `host` | Mặc định `127.0.0.1:3939`, chỉ máy này truy cập được |
+| `allowLan` | `true` cho máy khác trong mạng LAN mở được (ví dụ điều khiển bằng điện thoại) |
+| `provider` | `auto` \| `tikfinity` \| `connector` |
+| `tikfinityUrl` | Mặc định `ws://127.0.0.1:21213/` |
+| `autoConnect` | Tự kết nối khi server khởi động |
+| `signApiKey` | Key Euler Stream nếu nguồn trực tiếp bị giới hạn lượt |
+| `maxJoinsPerSecond` | Chặn ngập người vào khi live đông (mặc định 15/giây) |
+| `playerTtlMinutes` | Im lặng quá bao lâu thì coi như đã rời sân |
+| `watchdogSeconds` | Nguồn trực tiếp im quá lâu thì tự nối lại |
 
 ## Lưu ý
 
-- `tiktok-live-connector` là thư viện không chính thức (đọc giao thức nội bộ của TikTok, ký qua máy chủ Euler Stream). TikTok đổi giao thức thì cần cập nhật thư viện: `pnpm update tiktok-live-connector`. Gặp lỗi giới hạn lượt ký thì tạo key miễn phí ở eulerstream.com và điền `signApiKey`.
-- Live đông người thì TikTok không gửi đủ từng sự kiện tim và vào phòng; overlay vẫn chạy với những gì nhận được.
+- Nguồn trực tiếp (`tiktok-live-connector`) là thư viện không chính thức. TikTok đổi giao thức thì chạy `pnpm update tiktok-live-connector`. Nên dùng TikFinity làm nguồn chính.
+- Live đông thì TikTok không gửi đủ từng lượt vào phòng và từng lượt tim. Quà và bình luận thì gần như đủ.

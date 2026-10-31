@@ -1,0 +1,35 @@
+{
+  "name": "Mẫu (starter)",
+  "description": "Theme mẫu tối giản: nhân bản thư mục này để làm chủ đề mới.",
+  "width": 1080,
+  "height": 1920,
+  "actions": [
+    { "id": "pop", "label": "Nảy lên", "icon": "✨", "card": "1 COIN", "description": "Avatar nảy lên, lấp lánh" },
+    { "id": "confetti", "label": "Pháo giấy", "icon": "🎉", "card": "10 COINS", "description": "Pháo giấy cả màn hình" },
+    { "id": "spotlight", "label": "Tâm điểm", "icon": "🌟", "card": "100+ COINS", "description": "Người tặng ra giữa màn hình, phóng to" },
+    { "id": "wave", "label": "Vẫy tay", "icon": "👋", "description": "Dùng cho lệnh chat" }
+  ],
+  "rules": {
+    "joinMode": "all",
+    "joinKeywords": ["hi", "hello", "xin chao"],
+    "bigGiftCoins": 100,
+    "giftTiers": [
+      { "minCoins": 1, "action": "pop", "label": "Cảm ơn quà" },
+      { "minCoins": 10, "action": "confetti", "label": "Pháo giấy" },
+      { "minCoins": 100, "action": "spotlight", "label": "Tâm điểm" }
+    ],
+    "giftOverrides": [],
+    "chatCommands": [
+      { "keywords": ["hi", "hello", "chào", "xin chào"], "match": "exact", "action": "wave", "label": "Vẫy tay", "cooldownMs": 5000 }
+    ]
+  },
+  "titles": [
+    { "minCoins": 0, "label": "Khách" },
+    { "minCoins": 50, "label": "Fan cứng" },
+    { "minCoins": 500, "label": "VIP" }
+  ],
+  "goals": [
+    { "id": "likes", "metric": "likes", "label": "Mục tiêu tim", "every": 1000 }
+  ],
+  "text": { "title": "TikTok Live Kit" }
+}

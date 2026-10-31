@@ -1,16 +1,15 @@
 {
+  "host": "127.0.0.1",
   "port": 3939,
+  "theme": "chua",
+  "provider": "auto",
   "tiktokUsername": "",
-  "autoReconnectSeconds": 20,
+  "autoConnect": false,
+  "tikfinityUrl": "ws://127.0.0.1:21213/",
   "signApiKey": "",
-  "hallName": "Dâng hương",
-  "host": "Quán Mai Dung",
-  "maxDevotees": 180,
-  "giftTiers": [
-    { "minCoins": 1, "action": "incense", "label": "Dâng hương", "badge": "1 COIN" },
-    { "minCoins": 5, "action": "bow", "label": "Lễ Phật", "badge": "5 COINS" },
-    { "minCoins": 10, "action": "lotus", "label": "Hoa sen", "badge": "10+ COINS" },
-    { "minCoins": 100, "action": "grand", "label": "Đại lễ", "badge": "100+ COINS", "hidden": true }
-  ],
-  "likesPerBlessing": 100
+  "maxJoinsPerSecond": 15,
+  "playerTtlMinutes": 20,
+  "snapshotPlayers": 300,
+  "watchdogSeconds": 180,
+  "allowLan": false
 }
