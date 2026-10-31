@@ -11,7 +11,7 @@ import { createGiftCatalog } from './core/gift-catalog.js';
 import { sanitizeRules } from './core/rules.js';
 import { createManager } from './providers/manager.js';
 import { createDemo } from './providers/demo.js';
-import { listThemes, loadTheme } from './themes.js';
+import { listThemes, loadTheme, settingValues } from './themes.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = path.join(ROOT, 'data');
@@ -24,9 +24,10 @@ const PORT = Number(process.env.PORT || config.port || 3939);
 const HOST = process.env.HOST || config.host || '127.0.0.1';
 
 // ---------- Theme, luật, phiên ----------
-let theme, rules, session, engine;
+let theme, rules, session, engine, themeSettings;
 const catalog = createGiftCatalog(path.join(DATA, 'gifts.json'));
 const rulesFile = (id) => path.join(DATA, `rules-${id}.json`);
+const settingsFile = (id) => path.join(DATA, `theme-settings-${id}.json`);
 
 function activate(themeId) {
   theme = loadTheme(path.join(ROOT, 'themes'), themeId);
@@ -34,6 +35,7 @@ function activate(themeId) {
   let saved = null;
   try { saved = JSON.parse(fs.readFileSync(rulesFile(theme.id), 'utf8')); } catch {}
   rules = sanitizeRules(saved || theme.rules, actionIds);
+  themeSettings = settingValues(theme, readJson(settingsFile(theme.id)));
   session?.save();
   session = createSession({
     file: path.join(DATA, `session-${theme.id}.json`),
@@ -91,6 +93,13 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="top-${theme.id}-${new Date().toISOString().slice(0, 10)}.csv"` });
     return res.end(session.csv());
   }
+  if (p === '/api/theme-files') {
+    // liệt kê file trong themes/<theme>/assets/<dir> (nhạc, ảnh) để theme tự nạp những gì người dùng thả vào
+    const dir = String(url.searchParams.get('dir') || '').replace(/[^a-z0-9_-]/gi, '');
+    let files = [];
+    try { files = fs.readdirSync(path.join(ROOT, 'themes', theme.id, 'assets', dir)).filter((f) => /\.(mp3|ogg|wav|m4a|png|jpe?g|webp|gif|mp4|webm)$/i.test(f)).sort(); } catch {}
+    return json(res, { files });
+  }
   if (p.startsWith('/control/')) return serveFile(res, path.join(ROOT, 'public', 'control'), p.slice(9) || 'index.html');
   if (p.startsWith('/sdk/')) return serveFile(res, path.join(ROOT, 'public', 'sdk'), p.slice(5));
   if (p.startsWith('/themes/')) return serveFile(res, path.join(ROOT, 'themes'), p.slice(8));
@@ -132,10 +141,10 @@ function pushState() {
   stateTimer = setTimeout(() => { stateTimer = null; broadcast(stateMsg()); }, 250);
 }
 
-const publicTheme = () => ({ id: theme.id, name: theme.name, width: theme.width, height: theme.height, actions: theme.actions, titles: theme.titles, text: theme.text || {} });
+const publicTheme = () => ({ id: theme.id, name: theme.name, width: theme.width, height: theme.height, actions: theme.actions, titles: theme.titles, text: theme.text || {}, settings: theme.settings });
 
 function init(ws) {
-  const base = { type: 'init', theme: publicTheme(), state: stateMsg() };
+  const base = { type: 'init', theme: publicTheme(), state: stateMsg(), settings: themeSettings };
   if (ws.role === 'control') send(ws, { ...base, rules, gifts: catalog.list(), themes: listThemes(path.join(ROOT, 'themes')), config: { provider: config.provider || 'auto', tiktokUsername: config.tiktokUsername || '', tikfinityUrl: config.tikfinityUrl } });
   else send(ws, { ...base, players: session.active(config.snapshotPlayers || 300) });
 }
@@ -164,6 +173,12 @@ const CONTROL = {
     fs.mkdirSync(DATA, { recursive: true });
     fs.writeFileSync(rulesFile(theme.id), JSON.stringify(rules, null, 2));
     broadcast({ type: 'rules', rules }, 'control');
+  },
+  saveSettings(m) {
+    themeSettings = settingValues(theme, { ...themeSettings, ...(m.values || {}) });
+    fs.mkdirSync(DATA, { recursive: true });
+    fs.writeFileSync(settingsFile(theme.id), JSON.stringify(themeSettings, null, 2));
+    broadcast({ type: 'settings', values: themeSettings });
   },
   resetRules() { try { fs.unlinkSync(rulesFile(theme.id)); } catch {} rules = sanitizeRules(theme.rules, theme.actions.map((a) => a.id)); broadcast({ type: 'rules', rules }, 'control'); },
   setTheme(m) {

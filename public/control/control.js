@@ -108,6 +108,29 @@ $('catalog').onchange = () => {
 $('saveRules').onclick = () => { send({ type: 'saveRules', rules: collectRules() }); $('rulesMsg').textContent = 'Đã lưu ✓'; setTimeout(() => ($('rulesMsg').textContent = ''), 2500); };
 $('resetRules').onclick = () => { if (confirm('Bỏ luật đã chỉnh, dùng lại luật mặc định của theme?')) send({ type: 'resetRules' }); };
 
+// ---------- Cài đặt theme ----------
+function renderSettings(values, keepFocus = false) {
+  const fields = theme.settings || [];
+  $('settingsBox').hidden = !fields.length;
+  if (keepFocus && $('settings').contains(document.activeElement)) return;
+  $('settings').innerHTML = fields.map((f) => {
+    const v = values[f.id];
+    if (f.type === 'toggle') return `<label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" data-set="${esc(f.id)}"${v ? ' checked' : ''}> ${esc(f.label)}</label>`;
+    if (f.type === 'select') return `<label>${esc(f.label)}<select data-set="${esc(f.id)}">${(f.options || []).map((o) => `<option value="${esc(o.value)}"${o.value === v ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>`;
+    if (f.type === 'range') return `<label>${esc(f.label)} <output>${v}</output><input type="range" data-set="${esc(f.id)}" min="${f.min ?? 0}" max="${f.max ?? 100}" step="${f.step ?? 1}" value="${v}"></label>`;
+    return `<label>${esc(f.label)}<input data-set="${esc(f.id)}" value="${esc(v)}"></label>`;
+  }).join('');
+}
+let settingsTimer;
+$('settings').addEventListener('input', (e) => {
+  const el = e.target.closest('[data-set]');
+  if (!el) return;
+  if (el.type === 'range') el.previousElementSibling.textContent = el.value;
+  const value = el.type === 'checkbox' ? el.checked : el.type === 'range' ? Number(el.value) : el.value;
+  clearTimeout(settingsTimer);
+  settingsTimer = setTimeout(() => send({ type: 'saveSettings', values: { [el.dataset.set]: value } }), 150);
+});
+
 // ---------- Nhật ký ----------
 function log(text) {
   const el = document.createElement('div');
@@ -144,10 +167,11 @@ function connect() {
       $('themeSel').innerHTML = msg.themes.map((t) => `<option value="${esc(t.id)}"${t.id === theme.id ? ' selected' : ''}>${esc(t.name)}</option>`).join('');
       $('provider').value = msg.config.provider;
       if (!$('user').value) $('user').value = msg.config.tiktokUsername;
-      renderActions(); renderRules(); renderCatalog(); renderState(msg.state);
-      if (changed) setTimeout(() => ($('preview').src = '/overlay?quiet'), 300);
+      renderActions(); renderRules(); renderCatalog(); renderState(msg.state); renderSettings(msg.settings || {});
+      if (changed) setTimeout(() => ($('preview').src = '/overlay?quiet&mute'), 300);
     } else if (msg.type === 'state') renderState(msg);
     else if (msg.type === 'rules') { rules = msg.rules; renderRules(); }
+    else if (msg.type === 'settings') renderSettings(msg.values, true);
     else if (msg.type === 'gifts') { gifts = msg.gifts; renderCatalog(); log('Gặp quà mới, đã thêm vào danh sách quà'); }
     else if (msg.type === 'event' && msg.ev.kind !== 'like') { const t = describe(msg.ev); if (t) log(t); }
     else if (msg.type === 'error') log('Lỗi: ' + msg.message);

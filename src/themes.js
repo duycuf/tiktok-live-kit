@@ -29,5 +29,20 @@ export function loadTheme(dir, id) {
     goals: t.goals || [],
     rules: t.rules || {},
     text: t.text || {},
+    settings: Array.isArray(t.settings) ? t.settings : [],
   };
+}
+
+/** Giá trị cài đặt của theme: mặc định trong theme.json, ghi đè bằng giá trị đã lưu (chỉ nhận khoá có khai báo). */
+export function settingValues(theme, saved = {}) {
+  const out = {};
+  for (const f of theme.settings) {
+    let v = saved[f.id] ?? f.default;
+    if (f.type === 'range') v = Math.min(f.max ?? 100, Math.max(f.min ?? 0, Number(v) || 0));
+    else if (f.type === 'toggle') v = Boolean(v);
+    else if (f.type === 'select') v = (f.options || []).some((o) => o.value === v) ? v : f.default;
+    else v = String(v ?? '').slice(0, 500);
+    out[f.id] = v;
+  }
+  return out;
 }

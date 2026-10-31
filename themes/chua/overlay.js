@@ -473,21 +473,22 @@ const ACTIONS = {
   // Dâng hương: lên lư hương, đứng vái 3 lần, khói bốc, về chỗ
   incense(d, count) {
     queue(d, { type: 'stand' }, walkPath(d, (x) => toAislePath(x, { ...SCENE.offerSpot, x: SCENE.offerSpot.x + rand(-16, 16) })));
-    queue(d, { type: 'bow', standing: true, n: Math.min(3, Math.max(1, count)), per: 1100, onEach: () => { smoke(10, true); sparkles(SCENE.burner.x, SCENE.burner.y - 50, 8, 30); } });
+    queue(d, { type: 'bow', standing: true, n: Math.min(3, Math.max(1, count)), per: 1100, onEach: () => { ChuaAudio.bell(); smoke(10, true); sparkles(SCENE.burner.x, SCENE.burner.y - 50, 8, 30); } });
     queue(d, walkPath(d, toSlotPath), { type: 'kneel' });
   },
   // Lễ Phật: lên bồ đoàn, lạy 3 lạy, hào quang
   bow(d, count) {
     const c = SCENE.cushions[Math.floor(Math.random() * SCENE.cushions.length)];
     queue(d, { type: 'stand' }, walkPath(d, (x) => [{ x: SCENE.aisleX, y: x.y }, { x: SCENE.aisleX, y: c.y + 30 }, c]));
-    queue(d, { type: 'do', fn: (x) => { x.aura = 1; } }, { type: 'kneel' });
-    queue(d, { type: 'bow', n: Math.min(5, 2 + count), per: 1400, onEach: (x) => { x.aura = 1; sparkles(x.x, x.y - 40, 14, 40); } });
+    queue(d, { type: 'do', fn: (x) => { x.aura = 1; ChuaAudio.bell(); } }, { type: 'kneel' });
+    queue(d, { type: 'bow', n: Math.min(5, 2 + count), per: 1400, onEach: (x) => { x.aura = 1; ChuaAudio.mo(0.9); sparkles(x.x, x.y - 40, 14, 40); } });
     queue(d, { type: 'stand' }, walkPath(d, (x) => [{ x: SCENE.aisleX, y: c.y + 30 }, { x: SCENE.aisleX, y: x.slot.y }, { x: x.slot.x, y: x.slot.y }]), { type: 'kneel' });
   },
   // Dâng hoa sen: sen bay từ người tặng lên bàn thờ, mưa cánh sen
   lotus(d, count) {
     d.aura = 1;
     lotusFly(d.x, d.y - 60, Math.min(12, 3 + count * 2));
+    ChuaAudio.lotus();
     lotusRain(Math.min(80, 20 + count * 6));
     glow.level = Math.min(1, glow.level + 0.5);
     queue(d, { type: 'bow', n: 3, per: 1300, onEach: (x) => { x.aura = 1; } });
@@ -495,6 +496,7 @@ const ACTIONS = {
   // Đại lễ: cả điện cùng lạy, ánh sáng toả
   grand(d, count) {
     ACTIONS.lotus(d, count);
+    ChuaAudio.bigBell();
     rays = 1;
     glow.level = 1;
     for (const x of devotees.values()) if (!x.leaving && !x.task && x.tasks.length === 0) queue(x, { type: 'wait', ms: rand(0, 400) }, { type: 'bow', n: 3, per: 1500 });
@@ -505,6 +507,7 @@ const ACTIONS = {
 ACTIONS.pray = (d) => queue(d, { type: 'bow', n: 3, per: 1300, onEach: (x) => { x.aura = 0.6; } });
 
 function blessing(text) {
+  ChuaAudio.bigBell();
   rays = 1; glow.level = Math.min(1, glow.level + 0.6); lotusRain(30);
   toast(text);
 }
@@ -515,7 +518,9 @@ function onUser(ev, opts) {
   return d;
 }
 
+Live.on('settings', (v) => ChuaAudio.configure(v));
 Live.on('ready', ({ theme, players }) => {
+  ChuaAudio.configure(Live.settings);
   renderCards(theme.actions);
   if (!bannerBusy) { $('bWho').textContent = theme.text.host || ''; $('bWhat').textContent = theme.text.idle || ''; }
   // dựng lại đám đông đang có (OBS tải lại trang, mất mạng chốc lát...)
@@ -530,6 +535,7 @@ Live.on('chat', (ev) => {
 Live.on('like', (ev) => {
   const d = ev.user.isPlayer && onUser(ev);
   if (d) hearts(d.x, d.y - 70 * persp(d.y), Math.min(6, Math.ceil(ev.count / 3)));
+  if (Live.settings.moOnLike !== false) ChuaAudio.mo(0.6);
 });
 Live.on('follow', (ev) => { const d = onUser(ev); if (d) { d.bubble = { text: '🙏 Đã theo dõi', until: now() + 4000 }; sparkles(d.x, d.y - 60, 10, 25); } });
 Live.on('share', (ev) => { const d = onUser(ev); if (d) { d.bubble = { text: '🔗 Đã chia sẻ live', until: now() + 4000 }; sparkles(d.x, d.y - 60, 10, 25); } });

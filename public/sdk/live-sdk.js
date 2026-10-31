@@ -9,17 +9,22 @@
 //   Live.on('follow' | 'share' | 'title' | 'goal' | 'streamEnd', (e) => {})
 //   Live.on('state',    (s) => {})   s.viewers, s.totals, s.top, s.goals
 //   Live.on('reset',    () => {})    bảng điều khiển bấm "Phiên mới"
+//   Live.on('settings', (v) => {})   cài đặt riêng của theme (khai báo "settings" trong theme.json) vừa đổi
 //   Live.on('*',        (e) => {})   mọi sự kiện
 //
 //   Live.stage(el)      co phần tử el (kích thước gốc theo theme) vừa cửa sổ, giữ tỉ lệ
 //   Live.sound(url, vol) phát âm thanh (tự giới hạn số tiếng cùng lúc)
 //   Live.img(url)       ảnh có cache, bỏ referrer để ảnh TikTok tải được
+//   Live.audio()        AudioContext dùng chung (null khi tắt tiếng); Live.muted = true ở khung xem trước (?mute)
+//   Live.settings       giá trị cài đặt hiện tại của theme
 
 (function () {
   const handlers = {};
   const Live = {
     theme: null,
     state: null,
+    settings: {},
+    muted: new URLSearchParams(location.search).has('mute'),
     connected: false,
     on(kind, fn) { (handlers[kind] ||= []).push(fn); return Live; },
     emit(kind, data) {
@@ -39,6 +44,7 @@
       if (msg.type === 'init') {
         Live.theme = msg.theme;
         Live.state = msg.state;
+        Live.settings = msg.settings || {};
         Live.connected = true;
         banner(false);
         Live.emit('ready', { theme: msg.theme, players: msg.players || [], state: msg.state });
@@ -46,6 +52,7 @@
       } else if (msg.type === 'event') Live.emit(msg.ev.kind, msg.ev);
       else if (msg.type === 'state') { Live.state = msg; Live.emit('state', msg); }
       else if (msg.type === 'reset') Live.emit('reset', {});
+      else if (msg.type === 'settings') { Live.settings = msg.values || {}; Live.emit('settings', Live.settings); }
       else if (msg.type === 'reload') location.reload();
     };
     ws.onclose = () => {
@@ -101,9 +108,25 @@
     return im;
   };
 
+  let ctx = null;
+  Live.audio = function () {
+    if (Live.muted) return null;
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ctx = new AC();
+      // trình duyệt thường chặn âm thanh tới khi có thao tác; OBS thì không chặn
+      const unlock = () => ctx.state === 'suspended' && ctx.resume();
+      addEventListener('pointerdown', unlock);
+      addEventListener('keydown', unlock);
+    }
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    return ctx;
+  };
+
   let playing = 0;
   Live.sound = function (url, volume = 0.8) {
-    if (!url || playing >= 4) return;
+    if (!url || playing >= 4 || Live.muted) return;
     const a = new Audio(url);
     a.volume = volume;
     playing++;
