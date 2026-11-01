@@ -18,7 +18,7 @@ export function sanitizeRules(input = {}, actionIds = []) {
       .map((o) => ({ giftId: String(o.giftId || '').slice(0, 40), names: words(o.names), action: okAction(o.action), label: String(o.label || '').slice(0, 40) }))
       .filter((o) => o.giftId || o.names.length),
     chatCommands: list(input.chatCommands, 50)
-      .map((c) => ({ keywords: words(c.keywords), match: c.match === 'contains' ? 'contains' : 'exact', action: okAction(c.action), label: String(c.label || '').slice(0, 40), cooldownMs: Math.max(0, Number(c.cooldownMs) || 0) }))
+      .map((c) => ({ keywords: words(c.keywords), match: c.match === 'contains' ? 'contains' : 'exact', action: okAction(c.action), label: String(c.label || '').slice(0, 40), cooldownMs: Math.max(0, Number(c.cooldownMs) || 0), ...(c.draw ? { draw: String(c.draw).slice(0, 40) } : {}) }))
       .filter((c) => c.keywords.length),
   };
 }

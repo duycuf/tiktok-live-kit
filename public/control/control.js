@@ -48,6 +48,8 @@ $('simRow').onclick = (e) => {
   if (!sim) return;
   for (let i = 0; i < (sim.times || 1); i++) setTimeout(() => send({ type: 'sim', ...sim }), i * 80);
 };
+$('btnVoice').onclick = () => send({ type: 'testVoice', text: $('voiceText').value });
+$('btnPeriodic').onclick = () => send({ type: 'periodicNow' });
 document.querySelectorAll('[data-rate]').forEach((b) => b.onclick = () => {
   document.querySelectorAll('[data-rate]').forEach((x) => x.classList.toggle('on', x === b));
   send({ type: 'demo', rate: Number(b.dataset.rate) });

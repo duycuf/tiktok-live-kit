@@ -4,10 +4,24 @@ Bộ khung chung để làm **game / overlay tương tác cho TikTok LIVE**. Ng�
 
 Lõi viết một lần. Mỗi chủ đề (chùa ảo, sàn nhảy, đua xe…) là một **theme** cắm vào thư mục `themes/`, đổi ngay trên bảng điều khiển.
 
-| Theme có sẵn | |
+Kit không kèm theme làm sẵn, chỉ có khung trống `themes/template` để chép ra làm chủ đề của mình. Vẻ đẹp của theme đến từ asset (ảnh nền, nhân vật, GIF, video, nhạc) do bạn chuẩn bị.
+
+### Để theme ở repo riêng
+
+Mỗi kênh live có thể là một repo riêng chỉ chứa theme và dữ liệu, gọi server của kit với ba biến môi trường:
+
+| Biến | Ý nghĩa |
 |---|---|
-| `chua` · Chùa ảo | Người xem thành Phật tử trong chánh điện: quà 1 xu dâng hương, 5 xu lễ Phật, 10+ xu dâng hoa sen, 100+ xu đại lễ; chat "lạy" để lạy tại chỗ |
-| `starter` · Mẫu | Theme tối giản để nhân bản khi làm chủ đề mới |
+| `KIT_THEMES_DIR` | Thư mục chứa theme của bạn (ưu tiên hơn `themes/` của kit) |
+| `KIT_DATA_DIR` | Nơi lưu luật đã chỉnh, phiên live, giọng đọc (mặc định `data/` của kit) |
+| `KIT_CONFIG` | File cấu hình ghi đè `config.json` của kit (ví dụ `{"theme": "ten-theme"}`) |
+
+```bat
+set KIT_THEMES_DIR=%~dp0themes
+set KIT_DATA_DIR=%~dp0data
+set KIT_CONFIG=%~dp0config.json
+node ..\tiktok-live-kit\src\server.js
+```
 
 ## Hạ tầng khi live
 
@@ -69,7 +83,7 @@ Mất mạng, TikFinity tắt hay OBS tải lại trang đều không cần thao
 
 ## Làm theme mới
 
-Xem [docs/THEME.md](docs/THEME.md). Tóm tắt: chép `themes/starter`, sửa `theme.json` (các hành động, luật mặc định, danh hiệu, mục tiêu), rồi viết hàm vẽ cho từng hành động trong `overlay.js`. Theme vẽ bằng gì cũng được (DOM, Canvas, Three.js). Game ngoài như Unity cũng nối được vào WebSocket `/ws` với `{"type":"hello","role":"overlay"}`.
+Xem [docs/THEME.md](docs/THEME.md). Tóm tắt: chép `themes/template`, thả asset vào `assets/`, đo cảnh trong `scene.json`, rồi khai báo hành động cho từng mức quà trong `theme.json`. Cần hiệu ứng riêng thì viết thêm `theme.js`. Theme vẽ bằng gì cũng được (DOM, Canvas, Three.js). Game ngoài như Unity cũng nối được vào WebSocket `/ws` với `{"type":"hello","role":"overlay"}`.
 
 ## Cấu trúc
 
@@ -87,7 +101,7 @@ src/
 public/
   control/             bảng điều khiển
   sdk/live-sdk.js      SDK cho theme
-themes/<id>/           theme.json + index.html + overlay.js + assets/
+themes/<id>/           theme.json + scene.json + index.html + theme.js + assets/
 data/                  (không vào git) settings, luật đã chỉnh, phiên live, danh sách quà
 test/                  pnpm test
 ```

@@ -12,25 +12,58 @@ import { sanitizeRules } from './core/rules.js';
 import { createManager } from './providers/manager.js';
 import { createDemo } from './providers/demo.js';
 import { listThemes, loadTheme, settingValues } from './themes.js';
+import { createVoice } from './core/voice.js';
+import { createTTS } from './core/tts.js';
+import { createDraws } from './core/draws.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DATA = path.join(ROOT, 'data');
+// Repo dự án (ví dụ một kênh live) có thể dùng kit này mà để theme + dữ liệu ở chỗ riêng:
+//   KIT_THEMES_DIR  thư mục theme của dự án (ưu tiên hơn themes/ của kit)
+//   KIT_DATA_DIR    thư mục dữ liệu (luật đã chỉnh, phiên live, giọng đọc...)
+//   KIT_CONFIG      file cấu hình của dự án (ghi đè config.json của kit)
+const DATA = path.resolve(process.env.KIT_DATA_DIR || path.join(ROOT, 'data'));
+const THEME_DIRS = [process.env.KIT_THEMES_DIR, path.join(ROOT, 'themes')].filter(Boolean).map((d) => path.resolve(d));
 // config.json là mặc định (trong git); lựa chọn đổi lúc chạy (kênh, nguồn, theme) lưu riêng ở data/settings.json
 const SETTINGS_FILE = path.join(DATA, 'settings.json');
 const readJson = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return {}; } };
 const settings = readJson(SETTINGS_FILE);
-const config = { ...readJson(path.join(ROOT, 'config.json')), ...settings };
+const config = { ...readJson(path.join(ROOT, 'config.json')), ...(process.env.KIT_CONFIG ? readJson(path.resolve(process.env.KIT_CONFIG)) : {}), ...settings };
 const PORT = Number(process.env.PORT || config.port || 3939);
 const HOST = process.env.HOST || config.host || '127.0.0.1';
 
 // ---------- Theme, luật, phiên ----------
 let theme, rules, session, engine, themeSettings;
+let periodicTimer = null;
+let periodicIdx = 0;
 const catalog = createGiftCatalog(path.join(DATA, 'gifts.json'));
+const voice = createVoice();
+const draws = createDraws();
+const tts = createTTS({
+  dir: path.join(DATA, 'tts'),
+  onReady: (r) => broadcast({ type: 'event', ev: { kind: 'tts', at: Date.now(), url: `/tts/${r.file}`, text: r.text, for: r.for || '' } }),
+  onError: (msg) => { console.warn('[giọng đọc]', msg); broadcast({ type: 'error', message: msg }, 'control'); },
+});
+
+/** Đọc một câu bằng giọng của theme (nếu đang bật). */
+function speak(text, meta = {}) {
+  if (!text || !themeSettings?.voiceEnabled) return;
+  const v = theme.voice || {};
+  tts.say(text, { voice: v.voice, meta });
+}
+
+/** Mọi sự kiện đi ra overlay đều qua đây: nhớ lời người xem nói, đọc câu theo mẫu của theme. */
+function emitEvent(ev) {
+  if (ev.kind === 'chat') voice.remember(ev.user?.id, ev.text);
+  // lệnh chat có bốc thăm: server bốc để overlay và giọng đọc cùng một kết quả
+  if (ev.kind === 'command' && typeof ev.draw === 'string') { const d = draws.pick(theme.draws, ev.draw, ev.user?.id || ''); if (d) ev.draw = d; else delete ev.draw; }
+  broadcast({ type: 'event', ev });
+  if (!ev.test) speak(voice.line(theme.voice, ev), { for: ev.user?.id || '' });
+}
 const rulesFile = (id) => path.join(DATA, `rules-${id}.json`);
 const settingsFile = (id) => path.join(DATA, `theme-settings-${id}.json`);
 
 function activate(themeId) {
-  theme = loadTheme(path.join(ROOT, 'themes'), themeId);
+  theme = loadTheme(THEME_DIRS, themeId);
   const actionIds = theme.actions.map((a) => a.id);
   let saved = null;
   try { saved = JSON.parse(fs.readFileSync(rulesFile(theme.id), 'utf8')); } catch {}
@@ -47,13 +80,36 @@ function activate(themeId) {
     getRules: () => rules,
     session,
     catalog,
-    emit: (ev) => { if (ev.internal) { broadcast({ type: 'gifts', gifts: catalog.list() }, 'control'); return; } broadcast({ type: 'event', ev }); },
+    emit: (ev) => { if (ev.internal) { broadcast({ type: 'gifts', gifts: catalog.list() }, 'control'); return; } emitEvent(ev); },
     onChange: () => pushState(),
     maxJoinsPerSecond: config.maxJoinsPerSecond || 15,
   });
   console.log(`[theme] ${theme.name} (${theme.id})`);
+  schedulePeriodic();
 }
 activate(process.env.THEME || config.theme || 'starter');
+
+// ---------- Nội dung định kỳ (tụng kinh, lời mời, câu hỏi...) khi chat vắng ----------
+function schedulePeriodic() {
+  clearInterval(periodicTimer);
+  const p = theme.periodic || {};
+  const items = Array.isArray(p.items) ? p.items : [];
+  if (!items.length) return;
+  const every = Math.max(0.5, Number(p.everyMinutes) || 3) * 60000;
+  periodicTimer = setInterval(() => {
+    if (!themeSettings.periodicEnabled) return;
+    // chỉ chạy khi phòng vắng một lúc (mặc định 20 giây không có sự kiện)
+    const quiet = (Number(p.quietSeconds ?? 20) || 0) * 1000;
+    if (engine.lastEventAt && Date.now() - engine.lastEventAt < quiet) return;
+    firePeriodic(items[periodicIdx++ % items.length]);
+  }, every);
+  periodicTimer.unref?.();
+}
+function firePeriodic(item) {
+  const it = typeof item === 'string' ? { text: item } : item || {};
+  broadcast({ type: 'event', ev: { kind: 'periodic', at: Date.now(), text: it.text || '', title: it.title || theme.periodic?.title || '', action: it.action || '' } });
+  if (it.speak !== false) speak(it.say || it.text);
+}
 
 function saveConfig(patch) {
   Object.assign(config, patch);
@@ -97,12 +153,18 @@ const server = http.createServer((req, res) => {
     // liệt kê file trong themes/<theme>/assets/<dir> (nhạc, ảnh) để theme tự nạp những gì người dùng thả vào
     const dir = String(url.searchParams.get('dir') || '').replace(/[^a-z0-9_-]/gi, '');
     let files = [];
-    try { files = fs.readdirSync(path.join(ROOT, 'themes', theme.id, 'assets', dir)).filter((f) => /\.(mp3|ogg|wav|m4a|png|jpe?g|webp|gif|mp4|webm)$/i.test(f)).sort(); } catch {}
+    try { files = fs.readdirSync(path.join(theme.dir, 'assets', dir)).filter((f) => /\.(mp3|ogg|wav|m4a|png|jpe?g|webp|gif|mp4|webm|json)$/i.test(f)).sort(); } catch {}
     return json(res, { files });
   }
+  if (p.startsWith('/tts/')) return serveFile(res, path.join(DATA, 'tts'), p.slice(5));
+  if (p === '/vendor/lottie.min.js') return serveFile(res, path.join(ROOT, 'node_modules', 'lottie-web', 'build', 'player'), 'lottie.min.js');
   if (p.startsWith('/control/')) return serveFile(res, path.join(ROOT, 'public', 'control'), p.slice(9) || 'index.html');
   if (p.startsWith('/sdk/')) return serveFile(res, path.join(ROOT, 'public', 'sdk'), p.slice(5));
-  if (p.startsWith('/themes/')) return serveFile(res, path.join(ROOT, 'themes'), p.slice(8));
+  if (p.startsWith('/themes/')) {
+    const [id, ...rest] = p.slice(8).split('/');
+    const t = listThemes(THEME_DIRS).find((x) => x.id === id);
+    return t ? serveFile(res, t.dir, rest.join('/') || 'index.html') : res.writeHead(404).end('Not found');
+  }
   res.writeHead(404).end('Not found');
 });
 const json = (res, obj) => res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }).end(JSON.stringify(obj));
@@ -129,7 +191,7 @@ function stateMsg() {
     type: 'state',
     viewers: session.data.viewers,
     totals: session.data.totals,
-    top: session.top(10),
+    top: session.top(16),
     goals: session.goalsView(),
     live: manager.status,
     demo: demo.running,
@@ -141,12 +203,18 @@ function pushState() {
   stateTimer = setTimeout(() => { stateTimer = null; broadcast(stateMsg()); }, 250);
 }
 
-const publicTheme = () => ({ id: theme.id, name: theme.name, width: theme.width, height: theme.height, actions: theme.actions, titles: theme.titles, text: theme.text || {}, settings: theme.settings });
+const publicTheme = () => ({
+  id: theme.id, name: theme.name, width: theme.width, height: theme.height, actions: theme.actions, titles: theme.titles,
+  text: theme.text || {}, settings: theme.settings, characters: theme.characters, animations: theme.animations, npcs: theme.npcs,
+  hud: theme.hud, colors: theme.colors, sounds: theme.sounds, bigGift: theme.bigGift, reactions: theme.reactions, scene: theme.scene, goals: theme.goals,
+});
+// Overlay cần luật để tự sinh bảng "tặng gì được gì"; kèm tên và ảnh các quà đã gặp
+const guideData = () => ({ rules, gifts: catalog.list().map((g) => ({ id: g.id, name: g.name, coins: g.coins, image: g.image })) });
 
 function init(ws) {
   const base = { type: 'init', theme: publicTheme(), state: stateMsg(), settings: themeSettings };
-  if (ws.role === 'control') send(ws, { ...base, rules, gifts: catalog.list(), themes: listThemes(path.join(ROOT, 'themes')), config: { provider: config.provider || 'auto', tiktokUsername: config.tiktokUsername || '', tikfinityUrl: config.tikfinityUrl } });
-  else send(ws, { ...base, players: session.active(config.snapshotPlayers || 300) });
+  if (ws.role === 'control') send(ws, { ...base, rules, gifts: catalog.list(), themes: listThemes(THEME_DIRS).map(({ dir, ...t }) => t), config: { provider: config.provider || 'auto', tiktokUsername: config.tiktokUsername || '', tikfinityUrl: config.tikfinityUrl } });
+  else send(ws, { ...base, players: session.active(config.snapshotPlayers || 300), guide: guideData() });
 }
 
 const demo = createDemo({ onEvent: (ev) => engine.ingest(ev, { simulated: true }) });
@@ -165,7 +233,9 @@ const CONTROL = {
     const a = theme.actions.find((x) => x.id === m.action);
     if (!a) return;
     const p = session.active(1)[0] || { id: 'test', name: 'Người thử', avatar: '', coins: 0, title: '', rank: 0 };
-    broadcast({ type: 'event', ev: { kind: 'gift', at: Date.now(), user: { ...p, isPlayer: true }, gift: { id: '', name: 'Thử', image: '', coins: 0 }, count: 1, total: 0, action: a.id, label: a.label, big: Boolean(m.big), test: true } });
+    const ev = { kind: 'gift', at: Date.now(), user: { ...p, isPlayer: true }, gift: { id: '', name: 'Thử', image: '', coins: 0 }, count: 1, total: m.big ? 100 : 1, action: a.id, label: a.label, big: Boolean(m.big), test: true };
+    broadcast({ type: 'event', ev });
+    speak(voice.line(theme.voice, { ...ev, test: false }), { for: p.id });
   },
   reset() { session.reset(); engine.reset(); broadcast({ type: 'reset' }); pushState(); },
   saveRules(m) {
@@ -173,6 +243,7 @@ const CONTROL = {
     fs.mkdirSync(DATA, { recursive: true });
     fs.writeFileSync(rulesFile(theme.id), JSON.stringify(rules, null, 2));
     broadcast({ type: 'rules', rules }, 'control');
+    broadcast({ type: 'guide', ...guideData() }, 'overlay');
   },
   saveSettings(m) {
     themeSettings = settingValues(theme, { ...themeSettings, ...(m.values || {}) });
@@ -180,9 +251,11 @@ const CONTROL = {
     fs.writeFileSync(settingsFile(theme.id), JSON.stringify(themeSettings, null, 2));
     broadcast({ type: 'settings', values: themeSettings });
   },
+  testVoice(m) { const was = themeSettings.voiceEnabled; themeSettings.voiceEnabled = true; speak(String(m.text || 'Xin chào, đây là giọng đọc thử').slice(0, 200)); themeSettings.voiceEnabled = was; },
+  periodicNow() { const items = theme.periodic?.items || []; if (items.length) firePeriodic(items[periodicIdx++ % items.length]); },
   resetRules() { try { fs.unlinkSync(rulesFile(theme.id)); } catch {} rules = sanitizeRules(theme.rules, theme.actions.map((a) => a.id)); broadcast({ type: 'rules', rules }, 'control'); },
   setTheme(m) {
-    if (!listThemes(path.join(ROOT, 'themes')).some((t) => t.id === m.id)) return;
+    if (!listThemes(THEME_DIRS).some((t) => t.id === m.id)) return;
     saveConfig({ theme: m.id });
     activate(m.id);
     broadcast({ type: 'reload' }, 'overlay');
@@ -238,6 +311,7 @@ server.listen(PORT, HOST, () => {
 
 async function shutdown() {
   clearInterval(heartbeat);
+  clearInterval(periodicTimer);
   demo.stop();
   session.save();
   await manager.stop();

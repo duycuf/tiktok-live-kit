@@ -4,9 +4,9 @@ Một theme là một thư mục trong `themes/`. Lõi lo kết nối live, lọ
 
 ## Bắt đầu nhanh
 
-1. Chép `themes/starter` thành `themes/<ten-moi>` (tên tiếng Anh, kebab-case).
-2. Sửa `theme.json`: tên, các hành động, luật mặc định, danh hiệu, mục tiêu.
-3. Viết `overlay.js`: mỗi hành động khai báo trong `theme.json` cần một hàm vẽ.
+1. Chép `themes/template` thành `themes/<ten-moi>` (tên tiếng Anh, kebab-case). Muốn để theme ở repo riêng thì xem mục "Để theme ở repo riêng" trong README.
+2. Thả asset vào `assets/` (ảnh nền, nhân vật, `music/`, `sfx/`), rồi đo cảnh trong `scene.json` (mở overlay với `?scene` để thấy lưới và chỗ đứng).
+3. Sửa `theme.json`: tên, các hành động (mỗi hành động là danh sách bước JSON), luật mặc định, danh hiệu, mục tiêu, giọng đọc. Cần hiệu ứng riêng thì viết `theme.js`.
 4. Mở bảng điều khiển, chọn theme ở góc trên, rồi dùng **Test Lab** và các nút "Xem thử từng hiệu ứng".
 
 Thư mục bắt đầu bằng `_` sẽ bị bỏ qua (dùng cho bản nháp).
@@ -78,3 +78,19 @@ Tiện ích: `Live.img(url)` (ảnh có cache, tải được ảnh đại diệ
 - **Xử lý `ready` như dựng lại từ đầu**: OBS có thể tải lại trang bất cứ lúc nào.
 - **Không tin dữ liệu người xem**: tên và bình luận chèn vào HTML phải qua `esc()` hoặc `textContent`.
 - **Nền trong suốt** nếu muốn ghép lên camera trong OBS: bỏ màu nền của `body` và `#stage`.
+
+## Bốc thăm qua chat (xin xăm, rút bài, bói...)
+
+Khai báo bộ thăm trong `theme.json`, rồi cho một lệnh chat trỏ tới nó bằng `"draw"`:
+
+```json
+"draws": {
+  "xam": { "perDay": true, "items": [ { "so": 1, "loai": "Thượng cát", "tho": ["dòng 1", "dòng 2"], "loi": "lời bàn" } ] }
+},
+"rules": { "chatCommands": [ { "keywords": ["xin xăm"], "match": "contains", "action": "xam", "draw": "xam", "cooldownMs": 30000 } ] },
+"voice": { "draw": ["{ten} được quẻ số {so}, {loai}. {tho}. {loi}"], "drawAgain": ["{ten} hôm nay đã xin quẻ {so} rồi."] }
+```
+
+- Server bốc, nên overlay và giọng đọc ra cùng một lá. `perDay` (mặc định bật): mỗi người mỗi ngày một lá cố định, hỏi lại vẫn ra lá cũ.
+- Mọi trường của lá thăm thành biến cho giọng đọc (`{so}`, `{loai}`...), mảng được nối bằng dấu phẩy.
+- Giao diện có sẵn hiện trường `title` và `text` của lá. Theme có giao diện riêng thì nhận cả lá qua `Kit.hud.draw(ev)` (`ev.draw`).

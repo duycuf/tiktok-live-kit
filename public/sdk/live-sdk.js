@@ -47,11 +47,12 @@
         Live.settings = msg.settings || {};
         Live.connected = true;
         banner(false);
-        Live.emit('ready', { theme: msg.theme, players: msg.players || [], state: msg.state });
+        Live.emit('ready', { theme: msg.theme, players: msg.players || [], state: msg.state, guide: msg.guide });
         Live.emit('state', msg.state);
       } else if (msg.type === 'event') Live.emit(msg.ev.kind, msg.ev);
       else if (msg.type === 'state') { Live.state = msg; Live.emit('state', msg); }
       else if (msg.type === 'reset') Live.emit('reset', {});
+      else if (msg.type === 'guide') Live.emit('guide', msg);
       else if (msg.type === 'settings') { Live.settings = msg.values || {}; Live.emit('settings', Live.settings); }
       else if (msg.type === 'reload') location.reload();
     };

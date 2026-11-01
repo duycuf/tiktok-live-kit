@@ -1,26 +1,47 @@
-// Nạp theme từ thư mục themes/<id>/theme.json.
+// Nạp theme từ thư mục themes/<id>/: theme.json (nội dung, luật, giọng đọc...) + scene.json (bố cục cảnh).
 
 import fs from 'node:fs';
 import path from 'node:path';
 
-export function listThemes(dir) {
-  return fs.readdirSync(dir, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && !d.name.startsWith('_') && fs.existsSync(path.join(dir, d.name, 'theme.json')))
-    .map((d) => {
-      try { const t = JSON.parse(fs.readFileSync(path.join(dir, d.name, 'theme.json'), 'utf8')); return { id: d.name, name: t.name || d.name, description: t.description || '' }; }
-      catch { return null; }
-    })
-    .filter(Boolean);
+const readJson = (f, fallback = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return fallback; } };
+
+/** Theme trong một hoặc nhiều thư mục (thư mục đầu ưu tiên khi trùng tên). Mỗi theme kèm `dir` chứa nó. */
+export function listThemes(dirs) {
+  const seen = new Map();
+  for (const dir of [].concat(dirs)) {
+    let entries = [];
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { continue; }
+    for (const d of entries) {
+      if (!d.isDirectory() || d.name.startsWith('_') || d.name.startsWith('.') || seen.has(d.name)) continue;
+      const t = readJson(path.join(dir, d.name, 'theme.json'));
+      if (t) seen.set(d.name, { id: d.name, name: t.name || d.name, description: t.description || '', dir: path.join(dir, d.name) });
+    }
+  }
+  return [...seen.values()];
 }
 
-export function loadTheme(dir, id) {
-  const ids = listThemes(dir).map((t) => t.id);
-  const pick = ids.includes(id) ? id : ids[0];
-  if (!pick) throw new Error(`Không có theme nào trong ${dir}`);
-  if (pick !== id) console.warn(`[theme] không thấy "${id}", dùng "${pick}"`);
-  const t = JSON.parse(fs.readFileSync(path.join(dir, pick, 'theme.json'), 'utf8'));
+// Cài đặt kit thêm cho mọi theme (theme khai báo cùng id thì dùng bản của theme)
+const STANDARD_SETTINGS = [
+  { id: 'voiceEnabled', label: 'Giọng đọc xướng tên', type: 'toggle', default: true },
+  { id: 'voiceVolume', label: 'Âm lượng giọng đọc', type: 'range', min: 0, max: 100, default: 90 },
+  { id: 'musicVolume', label: 'Âm lượng nhạc nền (assets/music)', type: 'range', min: 0, max: 100, default: 30 },
+  { id: 'sfxVolume', label: 'Âm lượng tiếng hiệu ứng (assets/sfx)', type: 'range', min: 0, max: 100, default: 60 },
+  { id: 'ambientFx', label: 'Hiệu ứng môi trường (khói, hạt rơi, tia sáng)', type: 'toggle', default: true },
+  { id: 'cameraFx', label: 'Camera zoom vào người tặng quà lớn', type: 'toggle', default: true },
+  { id: 'periodicEnabled', label: 'Nội dung định kỳ khi chat vắng', type: 'toggle', default: true },
+];
+
+export function loadTheme(dirs, id) {
+  const all = listThemes(dirs);
+  const found = all.find((t) => t.id === id) || all[0];
+  if (!found) throw new Error(`Không có theme nào trong ${[].concat(dirs).join(', ')}`);
+  if (found.id !== id) console.warn(`[theme] không thấy "${id}", dùng "${found.id}"`);
+  const pick = found.id, dir = found.dir;
+  const t = readJson(path.join(dir, 'theme.json'), {});
+  const own = Array.isArray(t.settings) ? t.settings : [];
   return {
     id: pick,
+    dir,
     name: t.name || pick,
     width: t.width || 1080,
     height: t.height || 1920,
@@ -29,7 +50,20 @@ export function loadTheme(dir, id) {
     goals: t.goals || [],
     rules: t.rules || {},
     text: t.text || {},
-    settings: Array.isArray(t.settings) ? t.settings : [],
+    settings: [...own, ...STANDARD_SETTINGS.filter((s) => !own.some((o) => o.id === s.id))],
+    voice: t.voice || {},
+    periodic: t.periodic || {},
+    draws: t.draws || {},
+    // phần chỉ overlay dùng, server chuyển nguyên
+    characters: t.characters || [],
+    animations: t.animations || {},
+    npcs: t.npcs || [],
+    hud: t.hud || {},
+    colors: t.colors || {},
+    sounds: t.sounds || {},
+    bigGift: t.bigGift || {},
+    reactions: t.reactions || {},
+    scene: readJson(path.join(dir, 'scene.json'), {}),
   };
 }
 

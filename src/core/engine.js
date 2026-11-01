@@ -69,7 +69,7 @@ export function createEngine({ getRules, session, catalog, emit, onChange, maxJo
           const key = `${p.id}:${cmd.action}`;
           if (!cmd.cooldownMs || Date.now() - (cooldowns.get(key) || 0) >= cmd.cooldownMs) {
             cooldowns.set(key, Date.now());
-            send('command', p, { action: cmd.action, label: cmd.label, text: ev.text });
+            send('command', p, { action: cmd.action, label: cmd.label, text: ev.text, ...(cmd.draw ? { draw: cmd.draw } : {}) });
           }
         }
         break;
