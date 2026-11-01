@@ -16,13 +16,14 @@ const escXml = (s) => String(s).replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': 
 const psQuote = (s) => `'${String(s).replace(/'/g, "''")}'`;
 const PWSH = process.env.KIT_PWSH || 'pwsh';
 
-export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keepFiles = 40 }) {
+export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keepFiles = 40, synthesize }) {
   fs.mkdirSync(dir, { recursive: true });
   for (const f of fs.readdirSync(dir)) { try { fs.unlinkSync(path.join(dir, f)); } catch {} }
   if (cacheDir) fs.mkdirSync(cacheDir, { recursive: true });
   const queue = [];
   const warmQ = []; // câu đọc sẵn, chỉ làm khi rảnh
   let busy = false;
+  let speaking = false; // đang làm câu thật (không tính đọc sẵn ở nền)
   let seq = 0;
   const cacheFile = (text, voice) => cacheDir && path.join(cacheDir, crypto.createHash('sha1').update(`${voice}|${text}`).digest('hex').slice(0, 20) + '.mp3');
   const pickVoice = (v) => (VOICES.includes(v) ? v : VOICES[0]);
@@ -39,7 +40,7 @@ export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keep
     if (!t) return false;
     const cf = opts.cache && cacheFile(t, pickVoice(opts.voice));
     if (cf && fs.existsSync(cf)) { publish(fs.readFileSync(cf), 'mp3', t, opts.meta); return true; } // đã đọc sẵn: phát ngay
-    if (opts.low && (busy || queue.length)) return false; // câu phụ (chào, đọc bình luận) không chen khi đang có câu chờ
+    if (opts.low && (speaking || queue.length)) return false; // câu phụ (chào, đọc bình luận) không chen khi đang có câu chờ; đọc sẵn ở nền thì không tính
     if (queue.length >= maxQueue) { onError?.('Hàng đợi giọng đọc đầy, bỏ qua 1 câu'); return false; }
     if (opts.priority) { const i = queue.findIndex((q) => !q.opts.priority); queue.splice(i < 0 ? queue.length : i, 0, { text: t, opts }); }
     else queue.push({ text: t, opts });
@@ -95,11 +96,12 @@ export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keep
     if (busy || (!queue.length && !warmQ.length)) return;
     busy = true;
     const { text, opts } = queue.length ? queue.shift() : warmQ.shift();
+    speaking = !opts.warm;
     const voice = pickVoice(opts.voice);
     let audio = null, ext = 'mp3', lastErr = null;
     for (let tryNo = 0; tryNo < 3 && !audio; tryNo++) {
       if (tryNo) await new Promise((r) => setTimeout(r, 800 * tryNo));
-      try { audio = await synth(text, voice, 12000); } catch (err) { lastErr = err; }
+      try { audio = await (synthesize || synth)(text, voice, 12000); } catch (err) { lastErr = err; }
     }
     if (!audio && opts.fallback === 'local' && process.platform === 'win32') {
       try { audio = await localSynth(text); ext = 'wav'; } catch (err) { lastErr = err; }
@@ -108,7 +110,8 @@ export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keep
     if (audio && !opts.warm) publish(audio, ext, text, opts.meta);
     else if (!audio && !opts.warm) onError?.(`Giọng đọc lỗi: ${lastErr?.message || lastErr}`);
     busy = false;
-    setTimeout(pump, opts.warm ? 1200 : 300); // đọc sẵn thì giãn ra cho dịch vụ khỏi chặn
+    speaking = false;
+    setTimeout(pump, opts.warm && !queue.length ? 1200 : 300); // đọc sẵn thì giãn ra cho dịch vụ khỏi chặn; có câu thật chờ thì làm ngay
   }
 
   /** Đọc sẵn các câu (chưa có trong bộ nhớ) ở chế độ nền, để lúc cần phát ngay. */
