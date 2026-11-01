@@ -6,6 +6,16 @@ Lõi viết một lần. Mỗi chủ đề (chùa ảo, sàn nhảy, đua xe…)
 
 Kit không kèm theme làm sẵn, chỉ có khung trống `themes/template` để chép ra làm chủ đề của mình. Vẻ đẹp của theme đến từ asset (ảnh nền, nhân vật, GIF, video, nhạc) do bạn chuẩn bị.
 
+| Tài liệu | Nội dung |
+|---|---|
+| [docs/THEME.md](docs/THEME.md) | Làm theme: cấu trúc, `scene.json`, `theme.json`, hành động, giọng đọc, `theme.js` |
+| [docs/ASSETS-GUIDE.md](docs/ASSETS-GUIDE.md) | Làm đẹp do đâu: ảnh nền, tờ nhân vật, hiệu ứng, âm thanh bằng AI tạo ảnh, công cụ xử lý |
+| [docs/GO-LIVE.md](docs/GO-LIVE.md) | Lên live: LIVE Studio / OBS, TikFinity, kiểm tra trước giờ phát, lỗi hay gặp |
+| [AGENTS.md](AGENTS.md) | Cho AI lập trình (Claude Code, Codex, Gemini…): bản đồ repo, lệnh, quy tắc |
+| [CHANGELOG.md](CHANGELOG.md) | Các thay đổi |
+
+Làm bằng AI: mở repo trong Claude Code / Codex / Cursor rồi nói *"làm cho tôi theme <chủ đề>"*; AI đọc `AGENTS.md` và hỏi bạn về asset.
+
 ### Để theme ở repo riêng
 
 Mỗi kênh live có thể là một repo riêng chỉ chứa theme và dữ liệu, gọi server của kit với ba biến môi trường:
@@ -35,8 +45,7 @@ TikTok LIVE ──> TikFinity Desktop ──ws://127.0.0.1:21213──┐
                          ┌─────────────────────────────────┴───────────────┐
                 Bảng điều khiển (/)                               Overlay theme (/overlay)
                                                                           │
-                                       OBS: nguồn Browser ──> Virtual Camera ──> TikTok LIVE Studio
-                                       (hoặc OBS phát thẳng nếu kênh có stream key)
+                              LIVE Studio (quay cửa sổ overlay.bat) hoặc OBS (nguồn Browser)
 ```
 
 ## Chạy
@@ -54,17 +63,9 @@ Mở http://localhost:3939/ để vào bảng điều khiển.
 
 ## Lên live
 
-1. **TikFinity Desktop**: mở, đăng nhập TikTok, kết nối đúng kênh đang live. Lõi đọc sự kiện từ TikFinity, nên tên kênh nhập ở bảng điều khiển chỉ để hiển thị.
-2. **Bảng điều khiển**: chọn nguồn **Tự động** rồi bấm **Kết nối**.
-   - *Tự động*: thử TikFinity trước. Nếu không thấy thì tự chuyển sang kết nối trực tiếp, cách này cần nhập tên kênh.
-   - *Trực tiếp*: không cần TikFinity, dùng thư viện không chính thức `tiktok-live-connector`.
-3. **OBS**:
-   - Cài đặt → Video, đặt **1080×1920**.
-   - Thêm nguồn **Browser**: `http://localhost:3939/overlay`, 1080×1920.
-   - Bấm **Start Virtual Camera**.
-4. **TikTok LIVE Studio**: thêm nguồn Camera là **OBS Virtual Camera**. Nếu kênh có stream key thì OBS phát thẳng, không cần LIVE Studio.
+Ngắn gọn: chạy `run.bat` → mở TikFinity Desktop nối kênh → bảng điều khiển bấm **Kết nối** (nguồn **Tự động**) → chạy `overlay.bat` rồi trong LIVE Studio thêm nguồn **Quay màn hình cửa sổ** (hoặc OBS: nguồn Browser `http://localhost:3939/overlay`, 1080 × 1920). Từng bước và lỗi hay gặp: [docs/GO-LIVE.md](docs/GO-LIVE.md).
 
-Mất mạng, TikFinity tắt hay OBS tải lại trang đều không cần thao tác lại:
+Mất mạng, TikFinity tắt hay phần mềm phát tải lại trang đều không cần thao tác lại:
 - Lõi tự nối lại, giãn dần từ 2 đến 30 giây.
 - Overlay tự nối lại và dựng lại đám đông đang có.
 - Bảng xếp hạng được lưu xuống file, nên tắt mở server không mất.
@@ -79,7 +80,7 @@ Mất mạng, TikFinity tắt hay OBS tải lại trang đều không cần thao
   - Quà riêng theo ID hoặc tên. Danh sách tự học các món quà đã gặp trên live.
   - Lệnh chat có thời gian chờ.
 - **Bảng xếp hạng**: top theo xu, danh hiệu, tải **CSV** sau buổi live để tri ân, nút **Phiên mới**.
-- **Theme**: đổi ngay khi đang chạy, overlay trong OBS tự tải lại.
+- **Theme**: đổi ngay khi đang chạy, overlay tự tải lại.
 
 ## Làm theme mới
 
@@ -105,7 +106,9 @@ public/
   sdk/                 live-sdk (kết nối) · geometry · assets · fx · audio · scene (đám đông, camera) · hud · kit (chạy hành động JSON)
 themes/<id>/           theme.json + scene.json + index.html + theme.js + assets/
 data/                  (không vào git) settings, luật đã chỉnh, phiên live, danh sách quà
+tools/                 xử lý asset: cut-sheet.py (pnpm assets:cut), black-to-alpha.py (pnpm assets:alpha)
 test/                  pnpm test
+run.bat, overlay.bat   chạy server; mở overlay thành cửa sổ Chrome cho LIVE Studio quay
 ```
 
 ## Cấu hình
@@ -128,3 +131,7 @@ test/                  pnpm test
 
 - Nguồn trực tiếp (`tiktok-live-connector`) là thư viện không chính thức. TikTok đổi giao thức thì chạy `pnpm update tiktok-live-connector`. Nên dùng TikFinity làm nguồn chính.
 - Live đông thì TikTok không gửi đủ từng lượt vào phòng và từng lượt tim. Quà và bình luận thì gần như đủ.
+
+## Giấy phép
+
+[MIT](LICENSE). Kit là dự án độc lập, không liên kết hay được TikTok bảo trợ. Asset bạn đưa vào theme (ảnh, nhạc, font) theo giấy phép riêng của từng asset.

@@ -153,7 +153,7 @@ Giọng đọc dùng dịch vụ miễn phí của Microsoft (cần mạng, đô
 "npcs": [{ "id": "su", "character": "phattu", "at": [480, 870], "showName": false, "cushion": false, "reactions": { "bigGift": [...] } }]
 ```
 
-Tờ nhân vật vẽ bằng AI thường không chia đều: dùng công cụ cắt tờ (tự dò từng dáng, tách nền xanh) như `tools/cut-sheet.py --auto` trong repo chùa mẫu.
+Tờ nhân vật vẽ bằng AI thường không chia đều: dùng công cụ cắt tờ (tự dò từng dáng, tách nền xanh) `pnpm assets:cut ... --auto`, cách làm đầy đủ ở [ASSETS-GUIDE.md](ASSETS-GUIDE.md).
 
 ### Giao diện có sẵn, màu, âm thanh
 

@@ -106,6 +106,23 @@
           "play": "cheer"
         }
       ]
+    },
+    {
+      "id": "draw",
+      "label": "Rút thăm",
+      "icon": "🎴",
+      "description": "Dùng cho lệnh chat rút thăm: lá thăm hiện giữa màn, giọng đọc nội dung",
+      "steps": [
+        {
+          "play": "nod"
+        },
+        {
+          "fx": "emit",
+          "preset": "star",
+          "at": "head",
+          "count": 16
+        }
+      ]
     }
   ],
   "rules": {
@@ -144,8 +161,38 @@
         "action": "wave",
         "label": "Vẫy tay",
         "cooldownMs": 5000
+      },
+      {
+        "keywords": [
+          "rút thăm",
+          "rut tham"
+        ],
+        "match": "contains",
+        "action": "draw",
+        "label": "Rút thăm",
+        "cooldownMs": 3000,
+        "draw": "loi-chuc"
       }
     ]
+  },
+  "draws": {
+    "loi-chuc": {
+      "perDay": true,
+      "items": [
+        {
+          "title": "Lá số 1 · Đại cát",
+          "text": "Hôm nay làm gì cũng thuận."
+        },
+        {
+          "title": "Lá số 2 · Trung cát",
+          "text": "Kiên nhẫn một chút, tin vui sắp tới."
+        },
+        {
+          "title": "Lá số 3 · Tiểu cát",
+          "text": "Gặp người tốt, nhớ nói lời cảm ơn."
+        }
+      ]
+    }
   },
   "characters": [],
   "animations": {},
@@ -197,6 +244,12 @@
     "bigGift": [
       "Wow! Cảm ơn {ten} đã tặng {qua}{lan}. {loi}"
     ],
+    "join": [
+      "Chào {ten}!"
+    ],
+    "chat": [
+      "{ten} nhắn: {chat}."
+    ],
     "follow": [
       "Cảm ơn {ten} đã theo dõi kênh."
     ],
@@ -206,6 +259,16 @@
     "goal": [
       "Cả phòng đã đạt {gia_tri} {muc_tieu}!"
     ],
+    "draw": [
+      "{ten} rút được {title}. {text}"
+    ],
+    "cooldown": {
+      "join": 15000,
+      "chat": 10000
+    },
+    "delay": {
+      "draw": 1500
+    },
     "fallbackWords": []
   },
   "periodic": {
@@ -214,6 +277,14 @@
     "title": "✦ THÔNG BÁO ✦",
     "items": [
       "Bình luận để vào phòng, tặng quà để được vinh danh trên màn hình."
+    ]
+  },
+  "prompts": {
+    "everySeconds": 90,
+    "quietSeconds": 25,
+    "items": [
+      "Gõ «rút thăm» để xem lá thăm hôm nay nhé.",
+      "Thả tim để cả phòng đạt mục tiêu!"
     ]
   },
   "hud": {
@@ -253,5 +324,12 @@
       "priority": true
     }
   },
-  "text": {}
+  "text": {},
+  "reactions": {
+    "chat": [
+      {
+        "play": "nod"
+      }
+    ]
+  }
 }

@@ -7,12 +7,10 @@
   "spacing": { "col": 0.8, "row": 0.4 },
   "obstacles": [],
   "seats": [[440, 980], [640, 980], [340, 980], [740, 980], [240, 980], [840, 980]],
-  "points": {
-    "stage": [540, 930],
-    "focus": [540, 600],
-    "entry": [540, 2000]
-  },
+  "points": { "stage": [540, 930], "focus": [540, 600], "entry": [540, 2000] },
   "emitters": [],
   "glows": [],
-  "maxTags": 8
+  "maxTags": 8,
+  "fill": { "rows": 0 },
+  "fps": 30
 }

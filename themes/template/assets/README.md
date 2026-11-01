@@ -1,6 +1,6 @@
 # Thả asset của theme vào đây
 
-Khung trống không kèm ảnh, nhạc hay tiếng nào. Thiếu asset thì engine vẽ hình khối giữ chỗ. Đẹp hay không là do asset bạn chuẩn bị, xem `docs/ASSETS-GUIDE.md` (sẽ có) để biết kiếm ở đâu hoặc gen bằng AI thế nào.
+Khung trống không kèm ảnh, nhạc hay tiếng nào. Thiếu asset thì engine vẽ hình khối giữ chỗ. Đẹp hay không là do asset bạn chuẩn bị, xem `docs/ASSETS-GUIDE.md` của kit để biết kiếm ở đâu hoặc gen bằng AI thế nào.
 
 | Chỗ thả | Dùng cho | Khai báo ở |
 |---|---|---|
