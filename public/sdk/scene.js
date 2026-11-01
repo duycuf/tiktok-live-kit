@@ -8,6 +8,8 @@
 //   Khung đi theo hướng (tuỳ chọn): "walkUp": [...] đi lên/vào (thấy lưng), "walkDown": [...] đi xuống/ra (thấy mặt),
 //   "walkSide": [...] đi ngang (vẽ nhân vật quay sang phải, engine tự lật khi đi sang trái). Thiếu hướng nào thì dùng "walk".
 // Hoạt cảnh khai báo trong theme.json "animations": { "bow": { "frames": ["idle","bowHalf","bowFull","bowHalf"], "ms": 1300 } }
+// scene.json "fill": { "rows": 2 }: luôn lấp kín N hàng đầu bằng người không tên (không tính vào số người xem);
+// các hàng đó cố định, người xem thật ngồi từ hàng phía sau.
 
 (function () {
   const K = window.Kit;
@@ -83,9 +85,36 @@
   /** Điểm đặt tên trong scene.json "points" (ví dụ "censerMouth": [540, 940]). */
   function point(name) {
     if (!name) return null;
-    if (typeof name === 'object') return name;
+    if (typeof name === 'object') return Array.isArray(name) ? { x: name[0], y: name[1] } : name; // [x, y] hoặc { x, y }
     const p = theme.scene?.points?.[name];
     return p ? (Array.isArray(p) ? { x: p[0], y: p[1] } : p) : null;
+  }
+
+  // ---------- Người lấp chỗ: giữ kín N hàng đầu ----------
+  const fillers = new Map();
+  let fillSeq = 0, fillAt = 0;
+  function frontSlots() {
+    const rows = theme.scene?.fill?.rows || 0;
+    if (!rows) return [];
+    const ys = [...new Set(layout.slots.map((s) => s.y))].sort((a, b) => a - b).slice(0, rows);
+    return layout.slots.filter((s) => ys.includes(s.y));
+  }
+  function maintainFill(t) {
+    if (t - fillAt < 800) return;
+    fillAt = t;
+    const front = new Set(frontSlots());
+    for (const [id, f] of fillers) {
+      if (front.has(f.slot) && f.slot.taken === id) continue;
+      if (f.slot.taken === id) f.slot.taken = null;
+      fillers.delete(id);
+    }
+    for (const s of front) {
+      if (s.taken) continue;
+      const id = 'fill:' + fillSeq++;
+      const f = makePerson({ id, name: '' }, { npc: true, filler: true, showName: false, x: s.x, y: s.y, pose: 'idle', homePose: 'idle' });
+      f.slot = s; s.taken = id;
+      fillers.set(id, f);
+    }
   }
 
   // ---------- Chỗ đứng: tự giãn theo số người ----------
@@ -101,8 +130,11 @@
     if (!force && next.density > layout.density && count > layout.slots.length * 0.45) return;
     const movers = [...persons.values()].filter((p) => !p.leaving && !p.slot?.vip).sort((a, b) => a.joinedAt - b.joinedAt);
     layout = { density: next.density, slots: next.slots.map((s) => ({ ...s, taken: null })) };
+    fillers.clear(); fillAt = 0;
+    const front = new Set(frontSlots());
+    const open = layout.slots.filter((s) => !front.has(s));
     movers.forEach((p, i) => {
-      const s = layout.slots[i];
+      const s = open[i];
       if (!s) { leave(p); return; }
       p.slot = s; s.taken = p.id;
       if (!p.tasks.length && !p.task) p.tasks.push({ type: 'walk', pts: [{ x: s.x, y: s.y }] });
@@ -110,7 +142,8 @@
   }
 
   function freeSlot() {
-    let s = layout.slots.find((x) => !x.taken);
+    const front = new Set(frontSlots());
+    let s = layout.slots.find((x) => !x.taken && !front.has(x));
     if (s) return s;
     let oldest = null;
     for (const p of persons.values()) if (!p.leaving && !p.slot?.vip && !p.tasks.length && !p.task && (!oldest || p.lastActive < oldest.lastActive)) oldest = p;
@@ -273,7 +306,7 @@
     // nệm dưới người đang quỳ / ngồi (scene.json person.cushion); ghế danh dự đã có nệm vẽ sẵn trên nền
     const cu = S.person?.cushion;
     const atVip = p.slot?.vip && Math.hypot(p.x - p.slot.x, p.y - p.slot.y) < 3;
-    if (cu && !p.walking && !atVip && !(cu.standPoses || STAND_POSES).includes(pose)) {
+    if (cu && !p.walking && !atVip && p.cfg?.cushion !== false && !(cu.standPoses || STAND_POSES).includes(pose)) {
       const rx = h * (cu.width ?? 0.62), ry = rx * (cu.depth ?? 0.3), cy = p.y - ry * 0.25;
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(p.x, cy + ry * 0.45, rx * 1.04, ry * 1.04, 0, 0, 6.283); ctx.fill();
       const g = ctx.createLinearGradient(0, cy - ry, 0, cy + ry);
@@ -347,10 +380,10 @@
   // Tối đa maxTags nhãn (scene.json "maxTags", không tính top 3) và không cho nhãn đè lên nhau.
   function tagRect(p) {
     const hd = P.head(p);
-    ctx.font = '600 20px "Be Vietnam Pro", system-ui, sans-serif';
-    const w = ctx.measureText(p.name.slice(0, 14)).width + 50;
-    const top = hd.y - 30 - (p.bubble ? 74 : 0);
-    return { x: p.x - w / 2 - 4, y: top - 4, w: Math.max(w, p.bubble ? 250 : 0) + 8, h: hd.y - top + 8 };
+    ctx.font = '700 27px "Be Vietnam Pro", system-ui, sans-serif';
+    const w = ctx.measureText(p.name.slice(0, 14)).width + 62;
+    const top = hd.y - 40 - (p.bubble ? 96 : 0);
+    return { x: p.x - w / 2 - 4, y: top - 4, w: Math.max(w, p.bubble ? 320 : 0) + 8, h: hd.y - top + 8 };
   }
   function pickTags(all, t) {
     const cand = [];
@@ -382,40 +415,40 @@
   function drawTag(p) {
     const hd = P.head(p);
     if (!p.showTag) { if (p.npc && p.bubble) drawBubble(p.x, hd.y - 2, p.bubble.text); return; }
-    if (p.bubble) drawBubble(p.x, hd.y - 34, p.bubble.text);
+    if (p.bubble) drawBubble(p.x, hd.y - 44, p.bubble.text);
     ctx.save();
-    ctx.font = '600 20px "Be Vietnam Pro", system-ui, sans-serif';
+    ctx.font = '700 27px "Be Vietnam Pro", system-ui, sans-serif';
     const medal = ['', '🥇 ', '🥈 ', '🥉 '][p.rank] || '';
     const name = medal + (p.name.length > 14 ? p.name.slice(0, 13) + '…' : p.name);
-    const w = ctx.measureText(name).width + (p.npc ? 20 : 44), h = 30;
+    const w = ctx.measureText(name).width + (p.npc ? 24 : 56), h = 40;
     const x = Math.max(4, Math.min(W - w - 4, p.x - w / 2)), y = hd.y - h;
     ctx.globalAlpha = p.leaving ? 0 : 0.94;
     ctx.fillStyle = col('tagBg', 'rgba(25,14,10,.8)'); roundRect(x, y, w, h, 8); ctx.fill();
     ctx.strokeStyle = col('tagBorder', 'rgba(214,168,82,.55)'); ctx.lineWidth = 1; ctx.stroke();
     if (!p.npc) {
-      ctx.save(); ctx.beginPath(); ctx.arc(x + 16, y + h / 2, 11, 0, 6.283); ctx.clip();
-      if (p.avatar && p.avatar.complete && p.avatar.naturalWidth) ctx.drawImage(p.avatar, x + 5, y + h / 2 - 11, 22, 22);
+      ctx.save(); ctx.beginPath(); ctx.arc(x + 21, y + h / 2, 15, 0, 6.283); ctx.clip();
+      if (p.avatar && p.avatar.complete && p.avatar.naturalWidth) ctx.drawImage(p.avatar, x + 6, y + h / 2 - 15, 30, 30);
       else { ctx.fillStyle = '#8a7a6a'; ctx.fill(); }
       ctx.restore();
     }
     ctx.fillStyle = col('tagText', '#fff'); ctx.textBaseline = 'middle';
-    ctx.fillText(name, x + (p.npc ? 10 : 32), y + h / 2 + 1);
+    ctx.fillText(name, x + (p.npc ? 12 : 42), y + h / 2 + 1);
     ctx.restore();
   }
 
   function drawBubble(cx, bottom, text) {
     ctx.save();
-    ctx.font = '500 22px "Be Vietnam Pro", system-ui, sans-serif';
+    ctx.font = '600 28px "Be Vietnam Pro", system-ui, sans-serif';
     const words = String(text).split(/\s+/), lines = [];
     let line = '';
-    for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > 230 && line) { lines.push(line); line = w; } else line = t; }
+    for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > 290 && line) { lines.push(line); line = w; } else line = t; }
     if (line) lines.push(line);
     if (lines.length > 2) { lines.length = 2; lines[1] = lines[1].slice(0, 20) + '…'; }
-    const w = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 28, h = lines.length * 27 + 16;
+    const w = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 32, h = lines.length * 34 + 20;
     const x = Math.max(6, Math.min(W - w - 6, cx - w / 2)), y = bottom - h;
     ctx.fillStyle = col('bubbleBg', 'rgba(30,22,20,.86)'); roundRect(x, y, w, h, 12); ctx.fill();
     ctx.fillStyle = col('bubbleText', '#fff'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    lines.forEach((l, i) => ctx.fillText(l, x + w / 2, y + 9 + i * 27));
+    lines.forEach((l, i) => ctx.fillText(l, x + w / 2, y + 11 + i * 34));
     ctx.restore();
   }
 
@@ -524,9 +557,10 @@
   function frame(t, dt) {
     if (!ctx) return;
     relayout();
+    maintainFill(t);
     updateCamera(t, dt);
     K.fx.update(dt, t);
-    const all = [...persons.values(), ...npcs.values()];
+    const all = [...persons.values(), ...npcs.values(), ...fillers.values()];
     for (const p of all) update(p, t, dt);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -564,11 +598,12 @@
     ctx.restore();
   }
 
-  function reset() { for (const p of persons.values()) leave(p); for (const s of seats) s.taken = null; }
+  function reset() { for (const p of persons.values()) leave(p); for (const s of seats) s.taken = null; fillAt = 0; }
 
   K.scene = {
     init, configure, frame, ensure, leave: (id) => { const p = persons.get(id); if (p) leave(p); }, reset, point, seatTop, skinFromChat, focus,
     person: (id) => persons.get(id), npc: (id) => npcs.get(id), people: () => [...persons.values()].filter((p) => !p.leaving),
+    extras: () => [...fillers.values()], // người lấp chỗ (không phải người xem)
     height, P, get layout() { return layout; }, get seats() { return seats; }, get scene() { return S; }, get chars() { return chars; },
     set debug(v) { debugOverlay = v; },
   };

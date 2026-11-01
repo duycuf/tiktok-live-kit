@@ -94,22 +94,24 @@
   // ---------- Giọng đọc ----------
   const voiceQ = [];
   let speaking = false;
-  function voice(url, onStart) {
+  function voice(url, onStart, onEnd) {
     if (!init()) return;
-    if (voiceQ.length > 10) voiceQ.shift();
-    voiceQ.push({ url, onStart });
+    if (voiceQ.length > 10) voiceQ.shift()?.onEnd?.();
+    voiceQ.push({ url, onStart, onEnd });
     nextVoice();
   }
   function nextVoice() {
     if (speaking || !voiceQ.length) return;
     speaking = true;
-    const { url, onStart } = voiceQ.shift();
+    const { url, onStart, onEnd } = voiceQ.shift();
     const el = new Audio(url);
     el.crossOrigin = 'anonymous';
     ctx.createMediaElementSource(el).connect(voiceBus);
     el.onplay = () => { duckMusic(0.25); onStart?.(); };
-    el.onended = el.onerror = () => { duckMusic(1); speaking = false; setTimeout(nextVoice, 300); };
-    el.play().catch(() => { speaking = false; setTimeout(nextVoice, 300); });
+    let done = false;
+    const finish = () => { if (done) return; done = true; duckMusic(1); speaking = false; onEnd?.(); setTimeout(nextVoice, 300); };
+    el.onended = el.onerror = finish;
+    el.play().catch(finish);
   }
 
   function configure(settings = {}, sounds = {}) {

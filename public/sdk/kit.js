@@ -68,7 +68,7 @@
     else if (step.boost && person) P.boost(person, Number(step.boost) || 1.25, step.duration ?? 4000);
     else if (step.say && person) P.say(person, fill(step.say, ev), step.duration);
     else if (step.toast) K.hud.toast(fill(step.toast, ev));
-    else if (step.crowd) for (const q of K.scene.people()) { if (q.task || q.tasks.length) continue; K.scene.P.wait(q, Math.random() * (step.stagger ?? 400)); run(step.crowd, q, ev); }
+    else if (step.crowd) for (const q of [...K.scene.people(), ...(K.scene.extras?.() || [])]) { if (q.task || q.tasks.length) continue; K.scene.P.wait(q, Math.random() * (step.stagger ?? 400)); run(step.crowd, q, ev); }
     else if (step.npc) { const n = K.scene.npc(step.npc); if (n) run(step.steps || [], n, ev); }
     else if (step.js) { const fn = custom[step.js]; if (fn) fn(person, ev, { theme, settings }); else console.warn(`[Kit] chưa có Kit.action('${step.js}')`); }
   }
@@ -119,6 +119,7 @@
         if (!p) break;
         p.lastActive = performance.now();
         if (!S.skinFromChat(ev.user, ev.text)) S.P.say(p, ev.text);
+        if (!ev.command && !p.task && !p.tasks.length) run(reaction('chat'), p, ev); // theme.json reactions.chat: người chat làm động tác
         break;
       }
       case 'like': { const p = ev.user.isPlayer && S.ensure(ev.user); if (p) run(reaction('like'), p, ev); if (theme.sounds?.like !== false) K.audio.sfx('like'); break; }
@@ -148,7 +149,8 @@
         for (const n of theme.npcs || []) if (n.reactions?.periodic) run(n.reactions.periodic, S.npc(n.id), ev);
         break;
       }
-      case 'tts': if (!Live.muted) K.audio.voice(ev.url, () => K.events.emit('speak', ev)); break;
+      case 'prompt': K.hud.toast(ev.text, 6000); break;
+      case 'tts': if (!Live.muted) K.audio.voice(ev.url, () => K.events.emit('speak', ev), () => K.events.emit('speakEnd', ev)); break;
     }
     K.events.emit(kind, ev);
   }
@@ -212,11 +214,14 @@
   }
 
   let last = performance.now();
+  // scene.json "fps": giới hạn số hình vẽ mỗi giây (vd 30) để dành máy cho phần mềm phát live; mặc định theo màn hình
   function loop(t = performance.now()) {
+    requestAnimationFrame(loop);
+    const cap = theme?.scene?.fps;
+    if (cap && t - last < 1000 / cap - 2) return;
     const dt = Math.min(50, t - last); last = t;
     K.scene.frame(t, dt);
     K.events.emit('frame', t, dt);
-    requestAnimationFrame(loop);
   }
 
   Live.on('ready', start);
@@ -224,5 +229,12 @@
   Live.on('settings', (v) => { settings = v; K.scene.configure(v); K.audio.configure(v, theme?.sounds); });
   Live.on('reset', () => { K.scene.reset(); K.hud.reset(); });
   Live.on('guide', (g) => K.hud.guide(g, theme?.characters));
-  for (const k of ['join', 'chat', 'like', 'gift', 'command', 'follow', 'share', 'title', 'goal', 'periodic', 'tts']) Live.on(k, (ev) => theme && onEvent(k, ev));
+  for (const k of ['join', 'chat', 'like', 'gift', 'command', 'follow', 'share', 'title', 'goal', 'periodic', 'prompt', 'tts']) Live.on(k, (ev) => theme && onEvent(k, ev));
+
+  // Mở trang đúng lúc server đang khởi động lại có thể kẹt ở màn trống: chưa dựng được cảnh thì tự tải lại
+  setTimeout(function watchdog() {
+    if (started && document.querySelector('#stage canvas')) return;
+    console.warn('[Kit] chưa dựng được cảnh, tải lại trang');
+    location.reload();
+  }, 12000);
 })();

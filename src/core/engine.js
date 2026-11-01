@@ -63,8 +63,8 @@ export function createEngine({ getRules, session, catalog, emit, onChange, maxJo
         p.chats += 1;
         session.bump('chats', 1);
         if (openJoin || isJoinKeyword(rules, ev.text)) join(p, 'chat');
-        send('chat', p, { text: ev.text });
         const cmd = resolveChat(rules, ev.text);
+        send('chat', p, { text: ev.text, ...(cmd ? { command: cmd.action } : {}) });
         if (cmd && p.joined) {
           const key = `${p.id}:${cmd.action}`;
           if (!cmd.cooldownMs || Date.now() - (cooldowns.get(key) || 0) >= cmd.cooldownMs) {

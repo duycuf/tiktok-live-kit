@@ -53,6 +53,8 @@ export function loadTheme(dirs, id) {
     settings: [...own, ...STANDARD_SETTINGS.filter((s) => !own.some((o) => o.id === s.id))],
     voice: t.voice || {},
     periodic: t.periodic || {},
+    prompts: t.prompts || {},
+    prompts: t.prompts || {},
     draws: t.draws || {},
     // phần chỉ overlay dùng, server chuyển nguyên
     characters: t.characters || [],

@@ -12,7 +12,7 @@ import { sanitizeRules } from './core/rules.js';
 import { createManager } from './providers/manager.js';
 import { createDemo } from './providers/demo.js';
 import { listThemes, loadTheme, settingValues } from './themes.js';
-import { createVoice } from './core/voice.js';
+import { createVoice, fill } from './core/voice.js';
 import { createTTS } from './core/tts.js';
 import { createDraws } from './core/draws.js';
 
@@ -29,35 +29,65 @@ const readJson = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); }
 const settings = readJson(SETTINGS_FILE);
 const config = { ...readJson(path.join(ROOT, 'config.json')), ...(process.env.KIT_CONFIG ? readJson(path.resolve(process.env.KIT_CONFIG)) : {}), ...settings };
 const PORT = Number(process.env.PORT || config.port || 3939);
-const HOST = process.env.HOST || config.host || '127.0.0.1';
+// host: một địa chỉ hoặc danh sách ("127.0.0.1,192.168.78.191" / ["127.0.0.1", "..."]): nghe thêm đúng các địa chỉ đó
+// (ví dụ đường USB tới điện thoại) mà không phải mở cả mạng như allowLan
+const HOSTS = [].concat(process.env.HOST || config.host || '127.0.0.1').flatMap((h) => String(h).split(',')).map((h) => h.trim()).filter(Boolean);
 
 // ---------- Theme, luật, phiên ----------
 let theme, rules, session, engine, themeSettings;
 let periodicTimer = null;
 let periodicIdx = 0;
+let promptTimer = null; let promptIdx = 0; let lastPromptAt = 0; let lastChatAt = 0;
 const catalog = createGiftCatalog(path.join(DATA, 'gifts.json'));
 const voice = createVoice();
 const draws = createDraws();
 const tts = createTTS({
   dir: path.join(DATA, 'tts'),
-  onReady: (r) => broadcast({ type: 'event', ev: { kind: 'tts', at: Date.now(), url: `/tts/${r.file}`, text: r.text, for: r.for || '' } }),
+  cacheDir: path.join(DATA, 'tts-cache'),
+  onReady: (r) => broadcast({ type: 'event', ev: { kind: 'tts', at: Date.now(), url: `/tts/${r.file}`, text: r.text, for: r.for || '', about: r.about || '' } }),
   onError: (msg) => { console.warn('[giọng đọc]', msg); broadcast({ type: 'error', message: msg }, 'control'); },
 });
 
 /** Đọc một câu bằng giọng của theme (nếu đang bật). */
+// Câu đọc quẻ, quà, danh hiệu, mục tiêu chen lên trước; câu chào người vào, đọc bình luận chỉ đọc khi rảnh
+const PRIORITY = new Set(['draw', 'gift', 'title', 'goal']);
+const LOW = new Set(['join', 'chat', 'like', 'member']);
+const CACHED = new Set(['draw', 'prompt', 'periodic']); // câu cố định: đọc sẵn, lần sau phát ngay
 function speak(text, meta = {}) {
   if (!text || !themeSettings?.voiceEnabled) return;
   const v = theme.voice || {};
-  tts.say(text, { voice: v.voice, meta });
+  const go = () => tts.say(text, { voice: v.voice, meta, fallback: v.fallback, priority: PRIORITY.has(meta.about), low: LOW.has(meta.about), cache: CACHED.has(meta.about) });
+  // voice.delay: { "draw": 2300 } chờ cho khớp lúc hình hiện (thẻ quẻ mở sau khi lắc ống xăm)
+  const wait = Number(v.delay?.[meta.about]) || 0;
+  if (wait) setTimeout(go, wait); else go();
+}
+
+/** Đọc sẵn các câu cố định: đọc quẻ của mọi lá thăm (mẫu câu không có tên người), tụng kinh định kỳ, lời mời tương tác. */
+function warmDraws() {
+  const v = theme.voice || {};
+  if (!v.enabled) return;
+  const text = (x) => (typeof x === 'string' ? x : x?.speak === false ? '' : x?.say || x?.text || '');
+  const texts = [...(theme.periodic?.items || []), ...(theme.prompts?.items || [])].map(text).filter(Boolean);
+  const personal = ['ten', 'loi', 'chat', 'xu', 'lan', 'qua', 'danh_hieu'];
+  for (const t of v.draw || []) {
+    const used = [...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+    for (const d of Object.values(theme.draws || {})) for (const [i, it] of (d.items || []).entries()) {
+      // câu còn chỗ điền tên / lời riêng của từng người (mà lá thăm không có sẵn) thì không đọc sẵn được
+      if (used.some((k) => personal.includes(k) && !(k in it))) continue;
+      texts.push(fill(t, { n: i + 1, ...Object.fromEntries(Object.entries(it).map(([k, x]) => [k, Array.isArray(x) ? x.join(', ') : x])) }));
+    }
+  }
+  const n = tts.warm(texts, v.voice);
+  if (n) console.log(`[giọng đọc] đọc sẵn ${n} câu cố định ở chế độ nền`);
 }
 
 /** Mọi sự kiện đi ra overlay đều qua đây: nhớ lời người xem nói, đọc câu theo mẫu của theme. */
 function emitEvent(ev) {
-  if (ev.kind === 'chat') voice.remember(ev.user?.id, ev.text);
+  if (ev.kind === 'chat') { voice.remember(ev.user?.id, ev.text); lastChatAt = Date.now(); }
   // lệnh chat có bốc thăm: server bốc để overlay và giọng đọc cùng một kết quả
   if (ev.kind === 'command' && typeof ev.draw === 'string') { const d = draws.pick(theme.draws, ev.draw, ev.user?.id || ''); if (d) ev.draw = d; else delete ev.draw; }
   broadcast({ type: 'event', ev });
-  if (!ev.test) speak(voice.line(theme.voice, ev), { for: ev.user?.id || '' });
+  if (!ev.test) speak(voice.line(theme.voice, ev), { for: ev.user?.id || '', about: ev.draw ? 'draw' : ev.kind });
 }
 const rulesFile = (id) => path.join(DATA, `rules-${id}.json`);
 const settingsFile = (id) => path.join(DATA, `theme-settings-${id}.json`);
@@ -86,6 +116,8 @@ function activate(themeId) {
   });
   console.log(`[theme] ${theme.name} (${theme.id})`);
   schedulePeriodic();
+  schedulePrompts();
+  setTimeout(warmDraws, 3000);
 }
 activate(process.env.THEME || config.theme || 'starter');
 
@@ -105,10 +137,32 @@ function schedulePeriodic() {
   }, every);
   periodicTimer.unref?.();
 }
+// ---------- Lời mời tương tác khi chat vắng ----------
+// theme.json "prompts": { "everySeconds": 90, "quietSeconds": 25, "items": ["Gõ xin xăm để xem quẻ...", { "text": "...", "say": "..." }] }
+function schedulePrompts() {
+  clearInterval(promptTimer);
+  const p = theme.prompts || {};
+  const items = Array.isArray(p.items) ? p.items : [];
+  if (!items.length) return;
+  const every = Math.max(20, Number(p.everySeconds) || 90) * 1000;
+  const quiet = (Number(p.quietSeconds ?? 25) || 0) * 1000;
+  lastPromptAt = Date.now();
+  promptTimer = setInterval(() => {
+    if (!themeSettings.periodicEnabled || Date.now() - lastPromptAt < every) return;
+    if (lastChatAt && Date.now() - lastChatAt < quiet) return;
+    lastPromptAt = Date.now();
+    const raw = items[promptIdx++ % items.length];
+    const it = typeof raw === 'string' ? { text: raw } : raw || {};
+    broadcast({ type: 'event', ev: { kind: 'prompt', at: Date.now(), text: it.text || '' } });
+    if (it.speak !== false) speak(it.say || it.text, { about: 'prompt' });
+  }, 5000);
+  promptTimer.unref?.();
+}
+
 function firePeriodic(item) {
   const it = typeof item === 'string' ? { text: item } : item || {};
   broadcast({ type: 'event', ev: { kind: 'periodic', at: Date.now(), text: it.text || '', title: it.title || theme.periodic?.title || '', action: it.action || '' } });
-  if (it.speak !== false) speak(it.say || it.text);
+  if (it.speak !== false) speak(it.say || it.text, { about: 'periodic' });
 }
 
 function saveConfig(patch) {
@@ -135,7 +189,7 @@ function serveFile(res, base, rel) {
   });
 }
 
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1', ...HOSTS.filter((h) => h !== '0.0.0.0' && h !== '::')]);
 const hostOk = (h) => config.allowLan || LOCAL_HOSTS.has(String(h || '').replace(/:\d+$/, '').toLowerCase());
 
 const server = http.createServer((req, res) => {
@@ -227,7 +281,7 @@ const CONTROL = {
   },
   async disconnect() { await manager.stop(); },
   sim(m) { demo.fire(m.kind, m.arg, m.arg2); },
-  demo(m) { demo.auto(Number(m.rate) || 0); pushState(); },
+  demo(m) { demo.auto(Number(m.rate) || 0, { gifts: manager.status.state === 'idle' }); pushState(); }, // đang nối live thật: giả lập không tạo quà
   test(m) {
     // Bắn thẳng một hành động của theme để xem hiệu ứng, không cộng điểm
     const a = theme.actions.find((x) => x.id === m.action);
@@ -298,11 +352,22 @@ const heartbeat = setInterval(() => {
 const manager = createManager({
   config,
   onEvent: (ev) => engine.ingest(ev),
-  onStatus: () => pushState(),
+  onStatus: (st) => {
+    // nối được buổi live thật thì tắt giả lập: từ đây chỉ còn người xem thật
+    if (st?.state === 'connected' && demo.running) { demo.stop(); console.log('[live] đã nối, tắt giả lập'); }
+    pushState();
+  },
   lastEventAt: () => engine.lastEventAt,
 });
 
-server.listen(PORT, HOST, () => {
+for (const h of HOSTS.slice(1)) { // địa chỉ thêm: cùng xử lý, cùng WebSocket
+  const extra = http.createServer(server.listeners('request')[0]);
+  extra.on('upgrade', (req, socket, head) => server.emit('upgrade', req, socket, head));
+  extra.on('error', (e) => console.warn(`[mạng] không nghe được ${h}:${PORT} (${e.code || e.message})`));
+  extra.listen(PORT, h, () => console.log(`  - Mở thêm ở http://${h}:${PORT}/overlay`));
+}
+
+server.listen(PORT, HOSTS[0], () => {
   console.log(`\n  TikTok Live Kit · theme: ${theme.name}`);
   console.log(`  - Bảng điều khiển: http://localhost:${PORT}/`);
   console.log(`  - Overlay (OBS Browser source, ${theme.width}x${theme.height}): http://localhost:${PORT}/overlay\n`);

@@ -97,10 +97,12 @@ src/
     engine.js          đường ống: lọc trùng → combo → luật → phiên → phát sự kiện
     session.js         người chơi, xếp hạng, danh hiệu, mục tiêu, lưu file, xuất CSV
     gift-catalog.js    ghi nhớ quà đã gặp
+    voice.js, tts.js   mẫu câu giọng đọc (lọc bình luận, giãn cách), đọc tiếng Việt, đọc sẵn câu cố định
+    draws.js           bốc thăm qua chat (xin xăm, rút bài...)
   providers/           tikfinity · connector (trực tiếp) · demo · manager (nối lại, chuyển nguồn, canh im lặng)
 public/
   control/             bảng điều khiển
-  sdk/live-sdk.js      SDK cho theme
+  sdk/                 live-sdk (kết nối) · geometry · assets · fx · audio · scene (đám đông, camera) · hud · kit (chạy hành động JSON)
 themes/<id>/           theme.json + scene.json + index.html + theme.js + assets/
 data/                  (không vào git) settings, luật đã chỉnh, phiên live, danh sách quà
 test/                  pnpm test
@@ -112,7 +114,7 @@ test/                  pnpm test
 
 | Khoá | Ý nghĩa |
 |---|---|
-| `port`, `host` | Mặc định `127.0.0.1:3939`, chỉ máy này truy cập được |
+| `port`, `host` | Mặc định `127.0.0.1:3939`, chỉ máy này truy cập được. `host` nhận danh sách (`"127.0.0.1,192.168.137.1"`) để mở thêm đúng một địa chỉ (ví dụ điểm phát Wi-Fi của máy) |
 | `allowLan` | `true` cho máy khác trong mạng LAN mở được (ví dụ điều khiển bằng điện thoại) |
 | `provider` | `auto` \| `tikfinity` \| `connector` |
 | `tikfinityUrl` | Mặc định `ws://127.0.0.1:21213/` |

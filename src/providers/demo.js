@@ -44,14 +44,15 @@ export function createDemo({ onEvent, extraChats = [] }) {
     if (ev) onEvent(ev);
   }
 
-  function auto(rate = 1) {
+  // gifts: false khi đang lên sóng thật: chỉ có người vào, chat, tim cho chùa có không khí, không bày quà giả trước mặt người xem
+  function auto(rate = 1, { gifts = true } = {}) {
     stop();
     if (!rate) return;
     timer = setInterval(() => {
       const r = Math.random();
       if (r < 0.25) fire('member');
       else if (r < 0.5) fire('chat');
-      else if (r < 0.8) fire('like');
+      else if (r < 0.8 || !gifts) fire('like');
       else if (r < 0.83) fire('follow');
       else fire('gift', pick([1, 1, 1, 1, 5, 5, 10, 100]));
     }, Math.max(80, 700 / rate));
