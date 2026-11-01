@@ -124,7 +124,7 @@ A chat command with `"draw": "fortune"` makes the server draw one item (one fixe
   "gift": ["Cảm ơn {ten} đã tặng {qua}{lan}. {loi}."], "bigGift": [...],
   "join": ["Chào {ten}!"], "chat": ["{ten} nhắn: {chat}."],   // comments are filtered for profanity, links, emoji
   "follow": [...], "title": [...], "goal": [...],
-  "command:pray": ["{ten} cầu nguyện: {loi}."],               // a line per chat command (by action id)
+  "command:wish": ["{ten} gửi lời chúc: {loi}."],            // a line per chat command (by action id)
   "draw": ["{ten} rút được {title}. {text}"], "drawAgain": [...],
   "cooldown": { "join": 18000, "chat": 10000 },               // gap per line kind (ms)
   "delay": { "draw": 2300 },                                  // wait so the voice matches when the visual appears

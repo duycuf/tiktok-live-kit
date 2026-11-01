@@ -1,7 +1,7 @@
 """Cắt tờ nhân vật dạng lưới (gen bằng AI, nền xanh lá) thành dải khung ngang cho Kit.
 
 Chạy (ở thư mục kit, cần uv: https://docs.astral.sh/uv/):
-    pnpm assets:cut themes/<id>/assets/raw/devotee.png themes/<id>/assets/chars/devotee.png --auto
+    pnpm assets:cut themes/<id>/assets/raw/character.png themes/<id>/assets/chars/character.png --auto
     (tức là: uv run --no-project --with pillow --with numpy python tools/cut-sheet.py ...)
     tuỳ chọn: --cols 6 --rows 5 (mặc định đúng prompt master), --auto (AI xếp hàng không đều: tự dò từng dáng),
               --scale 0.66 (thu nhỏ tờ ra), --preview đường/dẫn.png (ảnh soát, mặc định cạnh file ra)

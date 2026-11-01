@@ -73,7 +73,7 @@ Vùng an toàn trên khung 1080 × 1920: trên cùng 240px (tên kênh, người
     "steps": [
       { "walk": "stage" },                                   // đi tới điểm mốc / "home" về chỗ
       { "pose": "stand" },
-      { "play": "bow", "times": 3, "each": [{ "sound": "chuong" }] },  // hoạt cảnh n lần ("count" = theo số quà)
+      { "play": "bow", "times": 3, "each": [{ "sound": "bell" }] },    // hoạt cảnh n lần ("count" = theo số quà)
       { "fx": "emit", "preset": "spark", "at": "head", "count": 12 },
       { "fx": "halo", "at": "focus", "image": "assets/fx/halo.png" },
       { "fx": "text", "at": "head", "text": "+{total}" },
@@ -94,27 +94,27 @@ Chữ trong bước điền được `{ten}` `{qua}` `{count}` `{total}` `{label
 ```jsonc
 "rules": {
   "joinMode": "all",                         // "all": ai tương tác cũng vào; "keyword": phải chat từ khoá
-  "joinKeywords": ["a di đà phật"],
+  "joinKeywords": ["xin chào"],
   "bigGiftCoins": 100,                       // từ bao nhiêu xu thì chạy thêm "bigGift"
-  "giftTiers": [{ "minCoins": 1, "action": "small", "label": "Dâng hương" }],   // theo giá MỘT món
+  "giftTiers": [{ "minCoins": 1, "action": "small", "label": "Quà nhỏ" }],      // theo giá MỘT món
   "giftOverrides": [{ "giftId": "5655", "names": ["rose"], "action": "small" }],
-  "chatCommands": [{ "keywords": ["xin xăm"], "match": "contains", "action": "xam", "draw": "xam", "label": "gieo quẻ", "cooldownMs": 30000 }]
+  "chatCommands": [{ "keywords": ["rút thăm"], "match": "contains", "action": "draw", "draw": "loi-chuc", "label": "rút lời chúc", "cooldownMs": 30000 }]
 },
 "bigGift":   { "steps": [...] },              // chạy thêm khi quà lớn
 "reactions": { "like": [...], "chat": [...], "follow": [...], "share": [...], "title": [...], "goal": [...] },
-"titles": [{ "minCoins": 200, "label": "Hộ pháp", "aura": 0.45 }],   // aura: vầng sáng thường trực theo danh hiệu (dùng trong theme.js)
+"titles": [{ "minCoins": 200, "label": "Fan cứng", "aura": 0.45 }],  // aura: vầng sáng thường trực theo danh hiệu (dùng trong theme.js)
 "goals":  [{ "id": "likes", "metric": "likes", "label": "Tim", "every": 1000 }]
 ```
 
 Thứ tự khớp quà: **ID quà** → **tên / bí danh** (không phân biệt dấu) → **bậc giá**. Bảng điều khiển sửa được luật, lưu ở `data/rules-<id>.json`.
 
-### Bốc thăm qua chat (xin xăm, rút bài, bói...)
+### Bốc thăm qua chat (rút thăm, rút bài, lời chúc...)
 
 ```jsonc
-"draws": { "xam": { "perDay": true, "items": [{ "so": 1, "loai": "Thượng cát", "tho": ["dòng 1", "dòng 2"], "loi": "lời bàn" }] } }
+"draws": { "loi-chuc": { "perDay": true, "items": [{ "title": "Lá số 1 · Đại cát", "text": "Hôm nay mọi việc đều thuận." }] } }
 ```
 
-Lệnh chat có `"draw": "xam"` thì server bốc một lá (mỗi người mỗi ngày một lá cố định nếu `perDay`), overlay nhận ở `ev.draw`, giọng đọc dùng mẫu `voice.draw`.
+Lệnh chat có `"draw": "loi-chuc"` thì server bốc một lá (mỗi người mỗi ngày một lá cố định nếu `perDay`). Overlay nhận ở `ev.draw` (giao diện có sẵn hiện ô `title` và `text`), giọng đọc dùng mẫu `voice.draw`, mọi ô của lá đều là biến (`{title}`, `{text}`…).
 
 ### Giọng đọc
 
@@ -124,8 +124,8 @@ Lệnh chat có `"draw": "xam"` thì server bốc một lá (mỗi người mỗ
   "gift": ["Cảm ơn {ten} đã tặng {qua}{lan}. {loi}."], "bigGift": [...],
   "join": ["Chào {ten}!"], "chat": ["{ten} nhắn: {chat}."],   // bình luận được lọc từ tục, link, biểu tượng
   "follow": [...], "title": [...], "goal": [...],
-  "command:cau": ["{ten} cầu nguyện: {loi}."],                // câu riêng cho từng lệnh chat
-  "draw": ["Quẻ số {so}, {loai}. {tho}. {loi}"], "drawAgain": [...],
+  "command:wish": ["{ten} gửi lời chúc: {loi}."],             // câu riêng cho từng lệnh chat (theo id hành động)
+  "draw": ["{ten} rút được {title}. {text}"], "drawAgain": [...],
   "cooldown": { "join": 18000, "chat": 10000 },               // giãn cách mỗi loại câu (ms)
   "delay": { "draw": 2300 },                                  // chờ cho khớp lúc hình hiện
   "fallbackWords": ["Chúc gia đình bình an"],                // {loi} khi người đó chưa chat gì
@@ -133,26 +133,26 @@ Lệnh chat có `"draw": "xam"` thì server bốc một lá (mỗi người mỗ
 }
 ```
 
-Giọng đọc dùng dịch vụ miễn phí của Microsoft (cần mạng, đôi lúc chậm). Câu quà, quẻ, danh hiệu được đọc trước; câu chào và đọc bình luận chỉ đọc khi rảnh. Câu cố định (đọc quẻ, tụng định kỳ, lời mời) được **đọc sẵn và lưu ở `data/tts-cache`**: lần sau phát ngay.
+Giọng đọc dùng dịch vụ miễn phí của Microsoft (cần mạng, đôi lúc chậm). Câu quà, bốc thăm, danh hiệu được đọc trước; câu chào và đọc bình luận chỉ đọc khi rảnh. Câu cố định (bốc thăm, thông báo định kỳ, lời mời) được **đọc sẵn và lưu ở `data/tts-cache`**: lần sau phát ngay.
 
 ### Nội dung tự chạy
 
 ```jsonc
-"periodic": { "everyMinutes": 3, "quietSeconds": 0, "title": "THỜI KINH", "items": ["..."] },  // quietSeconds > 0: chỉ chạy khi vắng
-"prompts":  { "everySeconds": 90, "quietSeconds": 25, "items": ["Gõ xin xăm để xem quẻ nhé."] }  // lời mời tương tác khi chat vắng
+"periodic": { "everyMinutes": 3, "quietSeconds": 0, "title": "THÔNG BÁO", "items": ["..."] },  // quietSeconds > 0: chỉ chạy khi vắng
+"prompts":  { "everySeconds": 90, "quietSeconds": 25, "items": ["Gõ rút thăm để nhận lời chúc nhé."] }  // lời mời tương tác khi chat vắng
 ```
 
 ### Nhân vật
 
 ```jsonc
 "characters": [{
-  "id": "phattu", "label": "Phật tử", "keywords": ["nam"],          // chat từ khoá để đổi dáng
-  "sheet": "assets/chars/devotee.png", "frames": 32,               // tờ khung ngang chia đều, tự cắt sát theo nền trong suốt
+  "id": "khach", "label": "Khách", "keywords": ["khách"],          // chat từ khoá để đổi dáng
+  "sheet": "assets/chars/guest.png", "frames": 32,                 // tờ khung ngang chia đều, tự cắt sát theo nền trong suốt
   "walkUp": [0, 1, 2], "walkDown": [8, 9], "walkSide": [12, 13],   // khung đi theo hướng (đi ngang vẽ quay sang phải)
-  "poses": { "idle": 16, "stand": 24, "incense": 26 }
+  "poses": { "idle": 16, "stand": 24, "cheer": 26 }
 }],
-"animations": { "bow": { "frames": ["idle", "idle@0.8", "idle"], "ms": 1300 } },   // "idle@0.8": nén thấp (cúi / lạy)
-"npcs": [{ "id": "su", "character": "phattu", "at": [480, 870], "showName": false, "cushion": false, "reactions": { "bigGift": [...] } }]
+"animations": { "bow": { "frames": ["idle", "idle@0.8", "idle"], "ms": 1300 } },   // "idle@0.8": nén thấp (cúi chào)
+"npcs": [{ "id": "host", "character": "khach", "at": [480, 870], "showName": false, "cushion": false, "reactions": { "bigGift": [...] } }]
 ```
 
 Tờ nhân vật vẽ bằng AI thường không chia đều: dùng công cụ cắt tờ (tự dò từng dáng, tách nền xanh) `pnpm assets:cut ... --auto`, cách làm đầy đủ ở [ASSETS-GUIDE.vi.md](ASSETS-GUIDE.vi.md).
@@ -163,7 +163,7 @@ Tờ nhân vật vẽ bằng AI thường không chia đều: dùng công cụ c
 "hud": { "title": { "text": "Tên kênh" }, "counters": true, "giftCard": { "verb": "đã tặng", "unit": "xu" }, "tiers": true,
          "board": { "title": "BẢNG VÀNG", "size": 3 }, "ticker": { "title": "Vừa tặng" }, "goal": true, "guide": { "title": "Cách tham gia" } },
 "colors": { "accent": "#ffd987", "panel": "...", "border": "...", "glow": "..." },
-"sounds": { "chuong": { "cooldown": 3000, "duck": 0.7 }, "like": false }   // assets/sfx/<tên>.mp3, nhạc nền: assets/music/*.mp3
+"sounds": { "bell": { "cooldown": 3000, "duck": 0.7 }, "like": false }   // assets/sfx/<tên>.mp3, nhạc nền: assets/music/*.mp3
 ```
 
 ## theme.js: phần riêng
@@ -175,7 +175,7 @@ Kit.on('speak', (e) => {}); Kit.on('speakEnd', (e) => {});   // giọng đọc b
 Kit.hud = { init, giftCard, ticker, state, guide, toast, periodic, draw, remember, reset };  // thay cả giao diện
 ```
 
-API: `Kit.scene` (người, điểm mốc, camera), `Kit.fx` (hiệu ứng), `Kit.audio` (`sfx('chuong')`), `Kit.safe` (vùng an toàn), `Live.on(...)` (sự kiện thô: join, chat, like, gift, command, follow, share, title, goal, periodic, prompt, tts, state, reset).
+API: `Kit.scene` (người, điểm mốc, camera), `Kit.fx` (hiệu ứng), `Kit.audio` (`sfx('bell')`), `Kit.safe` (vùng an toàn), `Live.on(...)` (sự kiện thô: join, chat, like, gift, command, follow, share, title, goal, periodic, prompt, tts, state, reset).
 
 ## Nguyên tắc để theme ổn định khi live
 

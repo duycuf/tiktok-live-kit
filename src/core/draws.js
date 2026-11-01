@@ -1,6 +1,6 @@
 // Bốc thăm cho lệnh chat (xin xăm, rút bài, bói...). Theme khai báo trong theme.json:
-//   "draws": { "xam": { "perDay": true, "items": [ { "so": 1, "loai": "Thượng cát", "tho": ["...", "..."], "loi": "..." } ] } }
-// rồi trỏ lệnh chat tới: "chatCommands": [{ "keywords": ["xin xăm"], "action": "xam", "draw": "xam" }].
+//   "draws": { "loi-chuc": { "perDay": true, "items": [ { "title": "...", "text": "..." } ] } }
+// rồi trỏ lệnh chat tới: "chatCommands": [{ "keywords": ["rút thăm"], "action": "draw", "draw": "loi-chuc" }].
 // perDay (mặc định): mỗi người mỗi ngày một quẻ cố định, hỏi lại vẫn ra quẻ cũ (kèm cờ again).
 
 const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };

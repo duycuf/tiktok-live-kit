@@ -58,7 +58,7 @@ Chấm trạng thái xanh và dòng "sự kiện cuối cách đây …" chạy 
 - Bấm thử các hiệu ứng, **Đọc thử** giọng.
 - Bật **Tự chạy** trong Test Lab để xem cảnh đông người; **tắt đi** và bấm **Phiên mới** trước khi lên sóng thật (nối được live thật thì giả lập cũng tự tắt).
 - Mở `/overlay?safe` xem chữ, bảng có nằm trong vùng an toàn không.
-- Câu đọc cố định (bốc thăm, tụng định kỳ, lời mời) được đọc sẵn sau khi server chạy vài phút: chạy kit sớm trước giờ live.
+- Câu đọc cố định (bốc thăm, thông báo định kỳ, lời mời) được đọc sẵn sau khi server chạy vài phút: chạy kit sớm trước giờ live.
 
 ## Lỗi hay gặp
 

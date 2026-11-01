@@ -4,7 +4,7 @@
 
 A shared framework for building **interactive games / overlays for TikTok LIVE**. When viewers join, comment, tap likes or send gifts, characters and effects on screen react.
 
-The core is written once. Each topic (virtual temple, dance floor, racing…) is a **theme** dropped into `themes/` and switched live from the control panel.
+The core is written once. Each topic (café, dance floor, fishing pond…) is a **theme** dropped into `themes/` and switched live from the control panel.
 
 The kit ships no ready-made themes, only the blank `themes/template` to copy for your own topic. A theme's look comes from the assets you prepare (background, characters, GIFs, video, music).
 

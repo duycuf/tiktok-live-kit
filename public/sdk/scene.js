@@ -292,7 +292,7 @@
     let alpha = 1;
     if (p.leaving) { alpha = 1 - (t - p.fadeStart) / 1200; if (alpha <= 0) { persons.delete(p.id); return; } }
     const h = height(p);
-    // "idle@0.8": cùng tư thế nhưng nén thấp xuống (làm động tác cúi / lạy khi tờ nhân vật không có khung lạy)
+    // "idle@0.8": cùng tư thế nhưng nén thấp xuống (làm động tác cúi khi tờ nhân vật không có khung cúi)
     let pose = currentPose(p), squash = 1;
     if (pose.includes('@')) { const [name, k] = pose.split('@'); pose = name; squash = Number(k) || 1; }
     const c = p.char;

@@ -44,7 +44,7 @@ export function createDemo({ onEvent, extraChats = [] }) {
     if (ev) onEvent(ev);
   }
 
-  // gifts: false khi đang lên sóng thật: chỉ có người vào, chat, tim cho chùa có không khí, không bày quà giả trước mặt người xem
+  // gifts: false khi đang lên sóng thật: chỉ có người vào, chat, tim cho cảnh có không khí, không bày quà giả trước mặt người xem
   function auto(rate = 1, { gifts = true } = {}) {
     stop();
     if (!rate) return;

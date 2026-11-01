@@ -4,7 +4,7 @@
 
 Bộ khung chung để làm **game / overlay tương tác cho TikTok LIVE**. Người xem vào live, bình luận, thả tim, tặng quà thì nhân vật và hiệu ứng trên màn hình phản ứng theo.
 
-Lõi viết một lần. Mỗi chủ đề (chùa ảo, sàn nhảy, đua xe…) là một **theme** cắm vào thư mục `themes/`, đổi ngay trên bảng điều khiển.
+Lõi viết một lần. Mỗi chủ đề (quán cà phê, sàn nhảy, hồ câu cá…) là một **theme** cắm vào thư mục `themes/`, đổi ngay trên bảng điều khiển.
 
 Kit không kèm theme làm sẵn, chỉ có khung trống `themes/template` để chép ra làm chủ đề của mình. Vẻ đẹp của theme đến từ asset (ảnh nền, nhân vật, GIF, video, nhạc) do bạn chuẩn bị.
 
@@ -101,7 +101,7 @@ src/
     session.js         người chơi, xếp hạng, danh hiệu, mục tiêu, lưu file, xuất CSV
     gift-catalog.js    ghi nhớ quà đã gặp
     voice.js, tts.js   mẫu câu giọng đọc (lọc bình luận, giãn cách), đọc tiếng Việt, đọc sẵn câu cố định
-    draws.js           bốc thăm qua chat (xin xăm, rút bài...)
+    draws.js           bốc thăm qua chat (rút thăm, rút bài...)
   providers/           tikfinity · connector (trực tiếp) · demo · manager (nối lại, chuyển nguồn, canh im lặng)
 public/
   control/             bảng điều khiển

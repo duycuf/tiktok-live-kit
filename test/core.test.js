@@ -59,7 +59,7 @@ test('social → follow / share', () => {
 });
 
 test('plain: bỏ dấu tiếng Việt, đ → d', () => {
-  assert.equal(plain('  Đi  Chùa ONL  '), 'di chua onl');
+  assert.equal(plain('  Quán  Cà PHÊ  '), 'quan ca phe');
   assert.equal(plain('Hoa Hồng'), 'hoa hong');
 });
 
@@ -77,26 +77,26 @@ test('streaks: combo chỉ tính phần tăng, không cộng trùng', () => {
 });
 
 const RULES = sanitizeRules({
-  joinMode: 'keyword', joinKeywords: 'a di da phat, nam mo',
-  giftTiers: [{ minCoins: 10, action: 'lotus' }, { minCoins: 1, action: 'incense' }, { minCoins: 5, action: 'bow' }],
+  joinMode: 'keyword', joinKeywords: 'xin chao, chao ca nha',
+  giftTiers: [{ minCoins: 10, action: 'big' }, { minCoins: 1, action: 'small' }, { minCoins: 5, action: 'bow' }],
   giftOverrides: [{ giftId: '8913', action: 'grand', label: 'Đặc biệt' }, { names: 'hoa hồng, rose', action: 'bow' }],
-  chatCommands: [{ keywords: ['lạy'], match: 'exact', action: 'pray' }, { keywords: 'con lạy', match: 'contains', action: 'pray' }],
-}, ['incense', 'bow', 'lotus', 'grand', 'pray']);
+  chatCommands: [{ keywords: ['chúc'], match: 'exact', action: 'wish' }, { keywords: 'chúc mừng', match: 'contains', action: 'wish' }],
+}, ['small', 'bow', 'big', 'grand', 'wish']);
 
 test('rules: ID quà → tên quà → bậc giá', () => {
   assert.equal(resolveGift(RULES, { id: '8913', name: 'Rosa', unitCoins: 10 }).action, 'grand');
   assert.equal(resolveGift(RULES, { id: '1', name: 'Hoa Hồng', unitCoins: 1 }).action, 'bow');
-  assert.equal(resolveGift(RULES, { id: '2', name: 'GG', unitCoins: 1 }).action, 'incense');
+  assert.equal(resolveGift(RULES, { id: '2', name: 'GG', unitCoins: 1 }).action, 'small');
   assert.equal(resolveGift(RULES, { id: '3', name: 'X', unitCoins: 7 }).action, 'bow');
-  assert.equal(resolveGift(RULES, { id: '4', name: 'Y', unitCoins: 99 }).action, 'lotus');
+  assert.equal(resolveGift(RULES, { id: '4', name: 'Y', unitCoins: 99 }).action, 'big');
 });
 
 test('rules: lệnh chat và từ khoá vào sân (không dấu, hoa thường)', () => {
-  assert.equal(resolveChat(RULES, 'LẠY')?.action, 'pray');
-  assert.equal(resolveChat(RULES, 'con lạy Phật ạ')?.action, 'pray');
+  assert.equal(resolveChat(RULES, 'CHÚC')?.action, 'wish');
+  assert.equal(resolveChat(RULES, 'chúc mừng cả nhà ạ')?.action, 'wish');
   assert.equal(resolveChat(RULES, 'chạy đi'), null);
-  assert.ok(isJoinKeyword(RULES, 'Nam Mô A Di Đà Phật'));
-  assert.ok(!isJoinKeyword(RULES, 'xin chào'));
+  assert.ok(isJoinKeyword(RULES, 'Xin Chào cả nhà'));
+  assert.ok(!isJoinKeyword(RULES, 'tạm biệt'));
 });
 
 test('rules: hành động không có trong theme thì về hành động đầu tiên', () => {
@@ -106,7 +106,7 @@ test('rules: hành động không có trong theme thì về hành động đầu
 
 function harness(rules = RULES) {
   const out = [];
-  const session = createSession({ file: tmp(Math.random().toString(36).slice(2)), titles: [{ minCoins: 0, label: 'Phật tử' }, { minCoins: 10, label: 'Thiện tín' }], goals: [{ id: 'likes', metric: 'likes', every: 100 }] });
+  const session = createSession({ file: tmp(Math.random().toString(36).slice(2)), titles: [{ minCoins: 0, label: 'Khách' }, { minCoins: 10, label: 'Fan cứng' }], goals: [{ id: 'likes', metric: 'likes', every: 100 }] });
   const engine = createEngine({ getRules: () => rules, session, catalog: { learn: () => false }, emit: (e) => out.push(e), onChange: () => {} });
   return { out, session, engine, kinds: () => out.map((e) => e.kind) };
 }
@@ -118,7 +118,7 @@ test('engine: chế độ từ khoá — chỉ vào sân khi chat từ khoá / t
   h.engine.ingest({ kind: 'chat', user: user('a'), text: 'hello' });
   assert.deepEqual(h.kinds(), ['chat']);
   assert.equal(h.out[0].user.isPlayer, false);
-  h.engine.ingest({ kind: 'chat', user: user('a'), text: 'nam mô a di đà phật' });
+  h.engine.ingest({ kind: 'chat', user: user('a'), text: 'chào cả nhà' });
   assert.deepEqual(h.kinds(), ['chat', 'join', 'chat']);
   h.engine.ingest({ kind: 'gift', user: user('b'), gift: { id: '2', name: 'GG', unitCoins: 1, streakable: false, repeatCount: 1, repeatEnd: true } });
   assert.deepEqual(h.kinds().slice(-2), ['join', 'gift']);
@@ -138,12 +138,12 @@ test('engine: lọc trùng theo eventId, combo + danh hiệu + mục tiêu', () 
   const gifts = h.out.filter((e) => e.kind === 'gift');
   assert.deepEqual(gifts.map((e) => e.count), [4, 4, 4]);
   assert.equal(h.session.data.players.b.coins, 12);
-  assert.equal(h.out.filter((e) => e.kind === 'title').length, 1, 'lên Thiện tín đúng một lần');
+  assert.equal(h.out.filter((e) => e.kind === 'title').length, 1, 'lên Fan cứng đúng một lần');
   assert.equal(h.session.top(1)[0].id, 'b');
 });
 
 test('engine: lệnh chat có thời gian chờ', () => {
-  const h = harness({ ...RULES, joinMode: 'all', chatCommands: [{ keywords: ['lay'], match: 'exact', action: 'pray', label: '', cooldownMs: 60000 }] });
-  for (let i = 0; i < 3; i++) h.engine.ingest({ kind: 'chat', user: user('a'), text: 'lạy' });
+  const h = harness({ ...RULES, joinMode: 'all', chatCommands: [{ keywords: ['chuc'], match: 'exact', action: 'wish', label: '', cooldownMs: 60000 }] });
+  for (let i = 0; i < 3; i++) h.engine.ingest({ kind: 'chat', user: user('a'), text: 'chúc' });
   assert.equal(h.out.filter((e) => e.kind === 'command').length, 1);
 });

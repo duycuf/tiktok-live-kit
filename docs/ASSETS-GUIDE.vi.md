@@ -64,7 +64,7 @@ Cắt tờ (tự dò từng dáng kể cả khi AI xếp lệch lưới, tách n
 pnpm assets:cut themes/<id>/assets/raw/nhanvat.png themes/<id>/assets/chars/nhanvat.png --auto --scale 0.7 --preview raw/soat.png
 ```
 
-Mở ảnh soát (có đánh số khung) rồi khai báo trong `theme.json` → `characters`: `sheet`, `frames`, `walkUp` / `walkDown` / `walkSide`, `poses`. Động tác thiếu khung thì dùng kiểu `"idle@0.8"` (nén thấp) cho cúi / lạy.
+Mở ảnh soát (có đánh số khung) rồi khai báo trong `theme.json` → `characters`: `sheet`, `frames`, `walkUp` / `walkDown` / `walkSide`, `poses`. Động tác thiếu khung thì dùng kiểu `"idle@0.8"` (nén thấp) cho cúi chào.
 
 ## 3. Hiệu ứng (nền đen)
 

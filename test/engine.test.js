@@ -83,13 +83,13 @@ test('bốc thăm: mỗi người mỗi ngày một quẻ, hỏi lại có cờ 
 
 test('đọc bình luận: bỏ từ tục, link, biểu tượng; lệnh chơi không đọc trùng; có giãn cách', async () => {
   const { readableChat } = await import('../src/core/voice.js');
-  assert.equal(readableChat('Chúc chùa đông vui'), 'Chúc chùa đông vui');
+  assert.equal(readableChat('Chúc cả nhà vui vẻ'), 'Chúc cả nhà vui vẻ');
   assert.equal(readableChat('đm vl'), '');
   assert.equal(readableChat('vào http://abc.com'), '');
   assert.equal(readableChat('😍😍😍'), '');
   const v = createVoice();
   const cfg = { enabled: true, chat: ['{ten} nhắn: {chat}.'], cooldown: { chat: 10000 } };
-  assert.equal(v.line(cfg, { kind: 'chat', user: { id: 'a', name: 'Lan' }, text: 'Chúc chùa đông vui' }), 'Lan nhắn: Chúc chùa đông vui.');
+  assert.equal(v.line(cfg, { kind: 'chat', user: { id: 'a', name: 'Lan' }, text: 'Chúc cả nhà vui vẻ' }), 'Lan nhắn: Chúc cả nhà vui vẻ.');
   assert.equal(v.line(cfg, { kind: 'chat', user: { id: 'b', name: 'Hoa' }, text: 'Hay quá' }), '');
   assert.equal(v.line({ ...cfg, cooldown: {} }, { kind: 'chat', user: { id: 'c', name: 'Tú' }, text: 'xin xăm', command: 'xam' }), '');
 });
