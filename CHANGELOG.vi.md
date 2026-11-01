@@ -2,7 +2,7 @@
 
 [English](CHANGELOG.md) | **Tiếng Việt**
 
-## Chưa phát hành
+## 1.0.1 (2026-11-02)
 
 - Giọng đọc: câu chào, đọc bình luận không còn bị bỏ khi đang đọc sẵn câu cố định ở nền.
 - Tài liệu bằng tiếng Anh, bản tiếng Việt ở `*.vi.md`.

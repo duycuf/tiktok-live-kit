@@ -2,7 +2,7 @@
 
 **English** | [Tiếng Việt](CHANGELOG.vi.md)
 
-## Unreleased
+## 1.0.1 (2026-11-02)
 
 - Voice: greetings and comment read-outs are no longer dropped while fixed lines are pre-rendered in the background.
 - Docs in English, Vietnamese versions in `*.vi.md`.
