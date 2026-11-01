@@ -1,16 +1,18 @@
-# Thả asset của theme vào đây
+# Put the theme's assets here
 
-Khung trống không kèm ảnh, nhạc hay tiếng nào. Thiếu asset thì engine vẽ hình khối giữ chỗ. Đẹp hay không là do asset bạn chuẩn bị, xem `docs/ASSETS-GUIDE.md` của kit để biết kiếm ở đâu hoặc gen bằng AI thế nào.
+**English** | [Tiếng Việt](README.vi.md)
 
-| Chỗ thả | Dùng cho | Khai báo ở |
+The blank template ships no images, music or sounds. Without assets the engine draws placeholder shapes. Whether the theme looks good depends on the assets you prepare: see the kit's `docs/ASSETS-GUIDE.md` for where to find them or how to generate them with AI.
+
+| Where | Used for | Declared in |
 |---|---|---|
-| `background.jpg` (hoặc `.png`, `.webp`) | ảnh nền 1080×1920 | `scene.json` → `background` |
-| `background.mp4` / `.webm` | video nền lặp (tuỳ chọn, đẹp hơn ảnh) | `scene.json` → `backgroundVideo` |
-| `chars/*.png` | tờ nhân vật nhiều tư thế, nền trong suốt | `theme.json` → `characters` |
-| `chars/*.gif` / `*.webm` | nhân vật động sẵn (nhảy, đi...) | `theme.json` → `characters[].idleAnim` |
-| `fx/*.png` / `*.gif` / `*.webm` / `*.json` (Lottie) | ảnh hiệu ứng | bước `{ "fx": "sprite", "image": ... }` hoặc `image` của hạt |
-| `sfx/<ten>.mp3` | tiếng hiệu ứng, gọi bằng tên | bước `{ "sound": "<ten>" }`; `sfx/like.mp3` tự kêu khi thả tim |
-| `music/*.mp3` | nhạc nền, phát lặp theo danh sách | tự nạp |
-| `ui/panel.png` | khung bảng giao diện | `theme.json` → `hud.panelImage` |
+| `background.jpg` (or `.png`, `.webp`) | 1080×1920 background | `scene.json` → `background` |
+| `background.mp4` / `.webm` | looping video background (optional, nicer than a still) | `scene.json` → `backgroundVideo` |
+| `chars/*.png` | multi-pose character sheet, transparent background | `theme.json` → `characters` |
+| `chars/*.gif` / `*.webm` | ready-animated characters (dancing, walking...) | `theme.json` → `characters[].idleAnim` |
+| `fx/*.png` / `*.gif` / `*.webm` / `*.json` (Lottie) | effect images | step `{ "fx": "sprite", "image": ... }` or a particle's `image` |
+| `sfx/<name>.mp3` | sound effects, called by name | step `{ "sound": "<name>" }`; `sfx/like.mp3` plays on likes automatically |
+| `music/*.mp3` | background music, looped as a playlist | loaded automatically |
+| `ui/panel.png` | HUD panel frame | `theme.json` → `hud.panelImage` |
 
-Ghi nguồn và giấy phép của từng asset vào `CREDITS.md` của theme.
+Record the source and license of each asset in the theme's `CREDITS.md`.

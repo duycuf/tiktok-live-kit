@@ -1,30 +1,32 @@
 # TikTok Live Kit
 
-Bộ khung chung để làm **game / overlay tương tác cho TikTok LIVE**. Người xem vào live, bình luận, thả tim, tặng quà thì nhân vật và hiệu ứng trên màn hình phản ứng theo.
+**English** | [Tiếng Việt](README.vi.md)
 
-Lõi viết một lần. Mỗi chủ đề (chùa ảo, sàn nhảy, đua xe…) là một **theme** cắm vào thư mục `themes/`, đổi ngay trên bảng điều khiển.
+A shared framework for building **interactive games / overlays for TikTok LIVE**. When viewers join, comment, tap likes or send gifts, characters and effects on screen react.
 
-Kit không kèm theme làm sẵn, chỉ có khung trống `themes/template` để chép ra làm chủ đề của mình. Vẻ đẹp của theme đến từ asset (ảnh nền, nhân vật, GIF, video, nhạc) do bạn chuẩn bị.
+The core is written once. Each topic (virtual temple, dance floor, racing…) is a **theme** dropped into `themes/` and switched live from the control panel.
 
-| Tài liệu | Nội dung |
+The kit ships no ready-made themes, only the blank `themes/template` to copy for your own topic. A theme's look comes from the assets you prepare (background, characters, GIFs, video, music).
+
+| Doc | Contents |
 |---|---|
-| [docs/THEME.md](docs/THEME.md) | Làm theme: cấu trúc, `scene.json`, `theme.json`, hành động, giọng đọc, `theme.js` |
-| [docs/ASSETS-GUIDE.md](docs/ASSETS-GUIDE.md) | Làm đẹp do đâu: ảnh nền, tờ nhân vật, hiệu ứng, âm thanh bằng AI tạo ảnh, công cụ xử lý |
-| [docs/GO-LIVE.md](docs/GO-LIVE.md) | Lên live: LIVE Studio / OBS, TikFinity, kiểm tra trước giờ phát, lỗi hay gặp |
-| [AGENTS.md](AGENTS.md) | Cho AI lập trình (Claude Code, Codex, Gemini…): bản đồ repo, lệnh, quy tắc |
-| [CHANGELOG.md](CHANGELOG.md) | Các thay đổi |
+| [docs/THEME.md](docs/THEME.md) | Building a theme: structure, `scene.json`, `theme.json`, actions, voice, `theme.js` |
+| [docs/ASSETS-GUIDE.md](docs/ASSETS-GUIDE.md) | Where the beauty comes from: background, character sheet, effects, sound with AI image tools, processing tools |
+| [docs/GO-LIVE.md](docs/GO-LIVE.md) | Going live: LIVE Studio / OBS, TikFinity, pre-stream checks, common problems |
+| [AGENTS.md](AGENTS.md) | For AI coding agents (Claude Code, Codex, Gemini…): repo map, commands, rules |
+| [CHANGELOG.md](CHANGELOG.md) | Changes |
 
-Làm bằng AI: mở repo trong Claude Code / Codex / Cursor rồi nói *"làm cho tôi theme <chủ đề>"*; AI đọc `AGENTS.md` và hỏi bạn về asset.
+Building with AI: open the repo in Claude Code / Codex / Cursor and say *"make me a <topic> theme"*; the agent reads `AGENTS.md` and asks you about assets.
 
-### Để theme ở repo riêng
+### Keeping a theme in its own repo
 
-Mỗi kênh live có thể là một repo riêng chỉ chứa theme và dữ liệu, gọi server của kit với ba biến môi trường:
+Each live channel can be a separate repo holding only its theme and data, running the kit's server with three environment variables:
 
-| Biến | Ý nghĩa |
+| Variable | Meaning |
 |---|---|
-| `KIT_THEMES_DIR` | Thư mục chứa theme của bạn (ưu tiên hơn `themes/` của kit) |
-| `KIT_DATA_DIR` | Nơi lưu luật đã chỉnh, phiên live, giọng đọc (mặc định `data/` của kit) |
-| `KIT_CONFIG` | File cấu hình ghi đè `config.json` của kit (ví dụ `{"theme": "ten-theme"}`) |
+| `KIT_THEMES_DIR` | Folder with your themes (takes precedence over the kit's `themes/`) |
+| `KIT_DATA_DIR` | Where edited rules, live sessions and voice files are stored (default: the kit's `data/`) |
+| `KIT_CONFIG` | Config file overriding the kit's `config.json` (e.g. `{"theme": "my-theme"}`) |
 
 ```bat
 set KIT_THEMES_DIR=%~dp0themes
@@ -33,105 +35,106 @@ set KIT_CONFIG=%~dp0config.json
 node ..\tiktok-live-kit\src\server.js
 ```
 
-## Hạ tầng khi live
+## Live setup
 
 ```
 TikTok LIVE ──> TikFinity Desktop ──ws://127.0.0.1:21213──┐
-          └──> (dự phòng) kết nối trực tiếp ───────────────┤
+          └──> (fallback) direct connection ───────────────┤
                                                            ▼
-                                    Lõi (Node, cổng 3939)
-                                    lọc trùng · gom combo · luật quà · xếp hạng · danh hiệu · mục tiêu
+                                    Core (Node, port 3939)
+                                    dedupe · combos · gift rules · leaderboard · titles · goals
                                                            │ WebSocket
                          ┌─────────────────────────────────┴───────────────┐
-                Bảng điều khiển (/)                               Overlay theme (/overlay)
+                Control panel (/)                                  Theme overlay (/overlay)
                                                                           │
-                              LIVE Studio (quay cửa sổ overlay.bat) hoặc OBS (nguồn Browser)
+                              LIVE Studio (window capture of overlay.bat) or OBS (Browser source)
 ```
 
-## Chạy
+## Run
 
-Cần Node.js 20 trở lên.
+Requires Node.js 20 or newer.
 
-- Windows: bấm đúp **`run.bat`** (tự cài thư viện, mở server và bảng điều khiển).
-- Hoặc:
+- Windows: double-click **`run.bat`** (installs dependencies, starts the server and opens the control panel).
+- Or:
   ```bash
   pnpm install
   pnpm start
   ```
 
-Mở http://localhost:3939/ để vào bảng điều khiển.
+Open http://localhost:3939/ for the control panel (its UI is in Vietnamese).
 
-## Lên live
+## Going live
 
-Ngắn gọn: chạy `run.bat` → mở TikFinity Desktop nối kênh → bảng điều khiển bấm **Kết nối** (nguồn **Tự động**) → chạy `overlay.bat` rồi trong LIVE Studio thêm nguồn **Quay màn hình cửa sổ** (hoặc OBS: nguồn Browser `http://localhost:3939/overlay`, 1080 × 1920). Từng bước và lỗi hay gặp: [docs/GO-LIVE.md](docs/GO-LIVE.md).
+In short: run `run.bat` → open TikFinity Desktop and connect your channel → click **Connect** in the control panel (source **Auto**) → run `overlay.bat` and add a **Window capture** source in LIVE Studio (or OBS: Browser source `http://localhost:3939/overlay`, 1080 × 1920). Step by step and common problems: [docs/GO-LIVE.md](docs/GO-LIVE.md).
 
-Mất mạng, TikFinity tắt hay phần mềm phát tải lại trang đều không cần thao tác lại:
-- Lõi tự nối lại, giãn dần từ 2 đến 30 giây.
-- Overlay tự nối lại và dựng lại đám đông đang có.
-- Bảng xếp hạng được lưu xuống file, nên tắt mở server không mất.
+Network drops, TikFinity restarts or the streaming app reloading the page need no action:
+- The core reconnects, backing off from 2 to 30 seconds.
+- The overlay reconnects and rebuilds the current crowd.
+- The leaderboard is saved to disk, so restarting the server keeps it.
 
-## Bảng điều khiển
+## Control panel
 
-- **Kết nối**: chọn nguồn, xem trạng thái, xem "sự kiện cuối cách đây bao lâu" để biết luồng có đang chạy.
-- **Test Lab**: tạo người xem giả, quà 1/5/10/100 xu, combo, chế độ tự chạy (vừa / đông / cực đông). Sự kiện giả đi qua đúng đường ống như live thật. Có nút xem thử từng hiệu ứng của theme.
-- **Luật tương tác** (sửa trên web, không cần code):
-  - Ai được vào sân: mọi người, hoặc chỉ người chat từ khoá / tặng quà.
-  - Bậc quà theo giá một món.
-  - Quà riêng theo ID hoặc tên. Danh sách tự học các món quà đã gặp trên live.
-  - Lệnh chat có thời gian chờ.
-- **Bảng xếp hạng**: top theo xu, danh hiệu, tải **CSV** sau buổi live để tri ân, nút **Phiên mới**.
-- **Theme**: đổi ngay khi đang chạy, overlay tự tải lại.
+- **Connection**: pick a source, see status and "last event N seconds ago" to know data is flowing.
+- **Test Lab**: fake viewers, 1/5/10/100-coin gifts, combos, auto mode (normal / busy / packed). Fake events go through the same pipeline as a real live. Buttons to preview each theme effect.
+- **Interaction rules** (edited on the web, no code):
+  - Who enters the scene: everyone, or only people who chat a keyword / send a gift.
+  - Gift tiers by single-gift price.
+  - Per-gift overrides by ID or name. The list learns gifts seen on live.
+  - Chat commands with cooldowns.
+- **Leaderboard**: top by coins, titles, **CSV** download after the live to thank supporters, **New session** button.
+- **Theme**: switch while running, the overlay reloads itself.
 
-## Làm theme mới
+## Making a theme
 
-Xem [docs/THEME.md](docs/THEME.md). Tóm tắt: chép `themes/template`, thả asset vào `assets/`, đo cảnh trong `scene.json`, rồi khai báo hành động cho từng mức quà trong `theme.json`. Cần hiệu ứng riêng thì viết thêm `theme.js`. Theme vẽ bằng gì cũng được (DOM, Canvas, Three.js). Game ngoài như Unity cũng nối được vào WebSocket `/ws` với `{"type":"hello","role":"overlay"}`.
+See [docs/THEME.md](docs/THEME.md). Summary: copy `themes/template`, put assets in `assets/`, measure the scene in `scene.json`, then declare the action for each gift tier in `theme.json`. Write `theme.js` for custom effects. A theme can draw with anything (DOM, Canvas, Three.js). External games such as Unity can also connect to the `/ws` WebSocket with `{"type":"hello","role":"overlay"}`.
 
-## Cấu trúc
+## Structure
 
 ```
 src/
-  server.js            HTTP + WebSocket, phân quyền control/overlay, nạp theme
+  server.js            HTTP + WebSocket, control/overlay roles, theme loading
   core/
-    normalize.js       dữ liệu thô của mọi nguồn → một dạng sự kiện chung
-    streaks.js         gom quà combo (chỉ tính phần tăng, không cộng trùng)
-    rules.js           luật: ID quà → tên quà → bậc giá; lệnh chat; từ khoá vào sân
-    engine.js          đường ống: lọc trùng → combo → luật → phiên → phát sự kiện
-    session.js         người chơi, xếp hạng, danh hiệu, mục tiêu, lưu file, xuất CSV
-    gift-catalog.js    ghi nhớ quà đã gặp
-    voice.js, tts.js   mẫu câu giọng đọc (lọc bình luận, giãn cách), đọc tiếng Việt, đọc sẵn câu cố định
-    draws.js           bốc thăm qua chat (xin xăm, rút bài...)
-  providers/           tikfinity · connector (trực tiếp) · demo · manager (nối lại, chuyển nguồn, canh im lặng)
+    normalize.js       raw data from every source → one common event shape
+    streaks.js         gift combos (counts only the increase, no double counting)
+    rules.js           rules: gift ID → gift name → price tier; chat commands; join keywords
+    engine.js          pipeline: dedupe → combos → rules → session → broadcast
+    session.js         players, leaderboard, titles, goals, persistence, CSV export
+    gift-catalog.js    remembers gifts seen
+    voice.js, tts.js   voice line templates (comment filtering, cooldowns), Vietnamese TTS, pre-rendered fixed lines
+    draws.js           chat draws (fortune sticks, card draws...)
+  providers/           tikfinity · connector (direct) · demo · manager (reconnect, source switching, silence watch)
 public/
-  control/             bảng điều khiển
-  sdk/                 live-sdk (kết nối) · geometry · assets · fx · audio · scene (đám đông, camera) · hud · kit (chạy hành động JSON)
+  control/             control panel
+  sdk/                 live-sdk (connection) · geometry · assets · fx · audio · scene (crowd, camera) · hud · kit (runs JSON actions)
 themes/<id>/           theme.json + scene.json + index.html + theme.js + assets/
-data/                  (không vào git) settings, luật đã chỉnh, phiên live, danh sách quà
-tools/                 xử lý asset: cut-sheet.py (pnpm assets:cut), black-to-alpha.py (pnpm assets:alpha)
+data/                  (not in git) settings, edited rules, live sessions, gift list
+tools/                 asset processing: cut-sheet.py (pnpm assets:cut), black-to-alpha.py (pnpm assets:alpha)
 test/                  pnpm test
-run.bat, overlay.bat   chạy server; mở overlay thành cửa sổ Chrome cho LIVE Studio quay
+run.bat, overlay.bat   start the server; open the overlay as a Chrome window for LIVE Studio to capture
 ```
 
-## Cấu hình
+## Configuration
 
-`config.json` là cấu hình mặc định. Những gì đổi trên bảng điều khiển (kênh, nguồn, theme) được lưu riêng ở `data/settings.json`.
+`config.json` holds the defaults. Anything changed in the control panel (channel, source, theme) is saved separately in `data/settings.json`.
 
-| Khoá | Ý nghĩa |
+| Key | Meaning |
 |---|---|
-| `port`, `host` | Mặc định `127.0.0.1:3939`, chỉ máy này truy cập được. `host` nhận danh sách (`"127.0.0.1,192.168.137.1"`) để mở thêm đúng một địa chỉ (ví dụ điểm phát Wi-Fi của máy) |
-| `allowLan` | `true` cho máy khác trong mạng LAN mở được (ví dụ điều khiển bằng điện thoại) |
+| `port`, `host` | Default `127.0.0.1:3939`, this machine only. `host` accepts a list (`"127.0.0.1,192.168.137.1"`) to open exactly one more address (e.g. the PC's Wi-Fi hotspot) |
+| `allowLan` | `true` lets other machines on the LAN connect (e.g. controlling from a phone) |
 | `provider` | `auto` \| `tikfinity` \| `connector` |
-| `tikfinityUrl` | Mặc định `ws://127.0.0.1:21213/` |
-| `autoConnect` | Tự kết nối khi server khởi động |
-| `signApiKey` | Key Euler Stream nếu nguồn trực tiếp bị giới hạn lượt |
-| `maxJoinsPerSecond` | Chặn ngập người vào khi live đông (mặc định 15/giây) |
-| `playerTtlMinutes` | Im lặng quá bao lâu thì coi như đã rời sân |
-| `watchdogSeconds` | Nguồn trực tiếp im quá lâu thì tự nối lại |
+| `tikfinityUrl` | Default `ws://127.0.0.1:21213/` |
+| `autoConnect` | Connect automatically when the server starts |
+| `signApiKey` | Euler Stream key if the direct source gets rate-limited |
+| `maxJoinsPerSecond` | Caps join floods on busy lives (default 15/s) |
+| `playerTtlMinutes` | How long a silent viewer stays before leaving the scene |
+| `watchdogSeconds` | Reconnect the direct source after this long without events |
 
-## Lưu ý
+## Notes
 
-- Nguồn trực tiếp (`tiktok-live-connector`) là thư viện không chính thức. TikTok đổi giao thức thì chạy `pnpm update tiktok-live-connector`. Nên dùng TikFinity làm nguồn chính.
-- Live đông thì TikTok không gửi đủ từng lượt vào phòng và từng lượt tim. Quà và bình luận thì gần như đủ.
+- The direct source (`tiktok-live-connector`) is an unofficial library. If TikTok changes its protocol, run `pnpm update tiktok-live-connector`. Prefer TikFinity as the main source.
+- On busy lives TikTok does not send every join and every like. Gifts and comments are nearly complete.
+- Voice and template text are Vietnamese: TTS uses the two `vi-VN` voices (`VOICES` in `src/core/tts.js`). Voice lines live in `theme.json`.
 
-## Giấy phép
+## License
 
-[MIT](LICENSE). Kit là dự án độc lập, không liên kết hay được TikTok bảo trợ. Asset bạn đưa vào theme (ảnh, nhạc, font) theo giấy phép riêng của từng asset.
+[MIT](LICENSE). The kit is an independent project, not affiliated with or endorsed by TikTok. Assets you put in a theme (images, music, fonts) follow their own licenses.

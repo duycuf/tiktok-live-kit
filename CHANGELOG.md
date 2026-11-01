@@ -1,16 +1,23 @@
-# Thay đổi
+# Changelog
+
+**English** | [Tiếng Việt](CHANGELOG.vi.md)
+
+## Unreleased
+
+- Voice: greetings and comment read-outs are no longer dropped while fixed lines are pre-rendered in the background.
+- Docs in English, Vietnamese versions in `*.vi.md`.
 
 ## 1.0.0 (2026-11-01)
 
-Bản chia sẻ đầu tiên.
+First shared release.
 
-- **Nguồn live**: TikFinity Desktop, nối trực tiếp (`tiktok-live-connector`), giả lập; tự chọn nguồn, tự nối lại, canh im lặng.
-- **Lõi**: lọc trùng, gom combo, luật quà (ID → tên → bậc giá), lệnh chat có thời gian chờ, từ khoá vào sân, xếp hạng, danh hiệu, mục tiêu, lưu phiên, xuất CSV.
-- **Bảng điều khiển**: kết nối, Test Lab (người xem giả, quà, combo, tự chạy), sửa luật trên web, đổi theme khi đang chạy.
-- **Overlay SDK**: đám đông theo phối cảnh (lối đi, chỗ ngồi, vật cản, lấp kín hàng đầu bằng `fill`), nhân vật từ tờ hoạt hình (đi theo hướng, tư thế, động tác), hiệu ứng (hạt, pháo hoa, tia sáng, ảnh / GIF / video / Lottie), âm thanh có giãn cách, camera, giao diện có sẵn, vùng an toàn `?safe`, giới hạn `fps`, tự tải lại khi kẹt.
-- **Hành động JSON**: mỗi mức quà / lệnh chat là danh sách bước, không cần code; `theme.js` cho phần riêng.
-- **Giọng đọc tiếng Việt**: cảm ơn quà, chào người vào, đọc bình luận (lọc từ tục, link), câu riêng cho từng lệnh, ưu tiên câu quan trọng, đọc sẵn câu cố định, dự phòng giọng Windows.
-- **Nội dung tự chạy**: bốc thăm qua chat (`draws`), thông báo định kỳ (`periodic`), lời mời tương tác khi chat vắng (`prompts`).
-- **Theme ở repo riêng**: `KIT_THEMES_DIR`, `KIT_DATA_DIR`, `KIT_CONFIG`.
-- **Công cụ asset**: `pnpm assets:cut` (cắt tờ nhân vật nền xanh, tự dò từng dáng), `pnpm assets:alpha` (nền đen → trong suốt, xoá dấu góc).
-- **Tài liệu**: `docs/THEME.md`, `docs/ASSETS-GUIDE.md`, `docs/GO-LIVE.md`, `AGENTS.md` cho AI lập trình.
+- **Live sources**: TikFinity Desktop, direct connection (`tiktok-live-connector`), demo; auto source selection, auto reconnect, silence watch.
+- **Core**: dedupe, gift combos, gift rules (ID → name → price tier), chat commands with cooldowns, join keywords, leaderboard, titles, goals, session persistence, CSV export.
+- **Control panel**: connection, Test Lab (fake viewers, gifts, combos, auto mode), rule editing on the web, theme switching while running.
+- **Overlay SDK**: perspective crowd (aisle, seats, obstacles, front rows always filled with `fill`), characters from an animation sheet (directional walks, poses, moves), effects (particles, fireworks, rays, image / GIF / video / Lottie), sounds with cooldowns, camera, built-in HUD, safe zones `?safe`, `fps` cap, auto reload when stuck.
+- **JSON actions**: each gift tier / chat command is a list of steps, no code needed; `theme.js` for custom parts.
+- **Vietnamese voice**: gift thanks, join greetings, comment read-outs (profanity and link filtering), per-command lines, priority for important lines, pre-rendered fixed lines, Windows voice fallback.
+- **Automatic content**: chat draws (`draws`), periodic announcements (`periodic`), interaction prompts when chat is quiet (`prompts`).
+- **Theme in its own repo**: `KIT_THEMES_DIR`, `KIT_DATA_DIR`, `KIT_CONFIG`.
+- **Asset tools**: `pnpm assets:cut` (cuts a green-screen character sheet, auto-detects each pose), `pnpm assets:alpha` (black background → transparent, removes corner marks).
+- **Docs**: `docs/THEME.md`, `docs/ASSETS-GUIDE.md`, `docs/GO-LIVE.md`, `AGENTS.md` for AI coding agents.

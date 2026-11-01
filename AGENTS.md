@@ -1,53 +1,54 @@
 # AGENTS.md
 
-Hướng dẫn cho AI lập trình (Claude Code, Codex, Gemini CLI, Cursor…) khi làm việc trong repo này. `CLAUDE.md` và `GEMINI.md` trỏ về file này.
+Instructions for AI coding agents (Claude Code, Codex, Gemini CLI, Cursor…) working in this repo. `CLAUDE.md` and `GEMINI.md` point here. Reply to the user in their language; the docs exist in English (`*.md`) and Vietnamese (`*.vi.md`).
 
-## Repo là gì
+## What this repo is
 
-TikTok Live Kit: server Node nhận sự kiện TikTok LIVE (quà, tim, chat, người vào) và một overlay 1080 × 1920 phản ứng theo **theme**. Người dùng thường nhờ AI **làm theme mới** hoặc **chỉnh theme**; hiếm khi cần sửa lõi.
+TikTok Live Kit: a Node server that receives TikTok LIVE events (gifts, likes, chat, joins) and a 1080 × 1920 overlay that reacts through a **theme**. Users usually ask an agent to **make a new theme** or **tweak a theme**; changing the core is rarely needed.
 
-| Đường dẫn | Nội dung |
+| Path | Contents |
 |---|---|
-| `src/server.js` | HTTP + WebSocket, nạp theme, giọng đọc, nội dung tự chạy |
-| `src/core/` | Đường ống sự kiện: normalize → streaks (combo) → rules → engine → session; `voice.js`, `tts.js`, `draws.js` |
-| `src/providers/` | Nguồn: TikFinity, nối trực tiếp, giả lập, manager (nối lại) |
-| `public/control/` | Bảng điều khiển (`/`) |
-| `public/sdk/` | SDK cho overlay: `kit.js` (chạy hành động JSON), `scene.js` (đám đông, camera), `fx.js`, `audio.js`, `hud.js`, `assets.js`, `geometry.js`, `live-sdk.js` |
-| `themes/template/` | Khung trống để chép làm theme mới |
-| `tools/` | Xử lý asset: cắt tờ nhân vật, nền đen → trong suốt |
-| `docs/` | `THEME.md` (tham chiếu đầy đủ), `ASSETS-GUIDE.md` (làm asset), `GO-LIVE.md` (lên live) |
+| `src/server.js` | HTTP + WebSocket, theme loading, voice, automatic content |
+| `src/core/` | Event pipeline: normalize → streaks (combos) → rules → engine → session; `voice.js`, `tts.js`, `draws.js` |
+| `src/providers/` | Sources: TikFinity, direct connection, demo, manager (reconnect) |
+| `public/control/` | Control panel (`/`, Vietnamese UI) |
+| `public/sdk/` | Overlay SDK: `kit.js` (runs JSON actions), `scene.js` (crowd, camera), `fx.js`, `audio.js`, `hud.js`, `assets.js`, `geometry.js`, `live-sdk.js` |
+| `themes/template/` | Blank template to copy for a new theme |
+| `tools/` | Asset processing: character sheet cutter, black → transparent |
+| `docs/` | `THEME.md` (full reference), `ASSETS-GUIDE.md` (making assets), `GO-LIVE.md` (going live) |
 | `test/` | `node --test` |
 
-## Lệnh
+## Commands
 
 ```bash
-pnpm install          # lần đầu (hoặc run.bat trên Windows)
-pnpm start            # server ở http://localhost:3939
-pnpm dev              # tự khởi động lại khi sửa src/
-pnpm test             # chạy test lõi
-pnpm assets:cut  <tờ.png> <ra.png> --auto --scale 0.7 --preview <soát.png>   # cắt tờ nhân vật nền xanh
-pnpm assets:alpha <vào.jpg> <ra.png> --max 1024                               # hiệu ứng nền đen → trong suốt
+pnpm install          # first time (or run.bat on Windows)
+pnpm start            # server at http://localhost:3939
+pnpm dev              # restarts on src/ changes
+pnpm test             # core tests
+pnpm assets:cut  <sheet.png> <out.png> --auto --scale 0.7 --preview <check.png>   # cut a green-screen character sheet
+pnpm assets:alpha <in.jpg> <out.png> --max 1024                                   # effect on black → transparent
 ```
 
-`assets:*` cần [uv](https://docs.astral.sh/uv/) (tự tải pillow, numpy).
+`assets:*` need [uv](https://docs.astral.sh/uv/) (fetches pillow, numpy).
 
-## Làm theme mới
+## Making a theme
 
-1. Chép `themes/template` → `themes/<ten-theme>` (tiếng Anh, kebab-case). Đặt `"theme": "<ten-theme>"` trong `config.json` hoặc chọn trên bảng điều khiển.
-2. **Hỏi người dùng về asset trước** (ảnh nền, nhân vật, âm thanh). Chưa có thì đưa họ `docs/ASSETS-GUIDE.md` và soạn prompt theo mẫu ở đó. Không tự vẽ asset bằng code thay cho ảnh thật, trừ khi người dùng muốn.
-3. Ảnh nền → `scene.json`: mở `/overlay?scene`, chỉnh `horizonY`, `person`, `floor`, `aisle`, `seats`, `points` tới khi người đứng đúng sàn.
-4. `theme.json`: `actions` (danh sách bước), `rules` (bậc quà, lệnh chat), `voice`, `characters`, `hud`, `colors`, `sounds`; tuỳ chọn `draws`, `periodic`, `prompts`, `reactions`, `titles`, `goals`. Mọi khoá có trong `docs/THEME.md`.
-5. Chỉ viết `theme.js` khi JSON không làm được (hành động riêng `Kit.action`, giao diện riêng thay `Kit.hud`).
-6. Kiểm tra: bảng điều khiển → bấm từng nút thử hiệu ứng, bật giả lập đông người, **Đọc thử** giọng; mở `/overlay?safe` xem chữ có nằm trong vùng an toàn.
+1. Copy `themes/template` → `themes/<theme-name>` (English, kebab-case). Set `"theme": "<theme-name>"` in `config.json` or pick it in the control panel.
+2. **Ask the user about assets first** (background, characters, sounds). If they have none, point them to `docs/ASSETS-GUIDE.md` and write prompts from its templates. Don't draw assets in code as a substitute for real images unless the user wants that.
+3. Background → `scene.json`: open `/overlay?scene`, tune `horizonY`, `person`, `floor`, `aisle`, `seats`, `points` until people stand on the floor.
+4. `theme.json`: `actions` (step lists), `rules` (gift tiers, chat commands), `voice`, `characters`, `hud`, `colors`, `sounds`; optional `draws`, `periodic`, `prompts`, `reactions`, `titles`, `goals`. Every key is in `docs/THEME.md`.
+5. Only write `theme.js` when JSON can't do it (custom action via `Kit.action`, custom HUD replacing `Kit.hud`).
+6. Check: in the control panel click every effect test button, run Test Lab auto mode for a crowd, test the voice (*Đọc thử*); open `/overlay?safe` to check text is inside the safe zone.
 
-Theme có thể nằm ở repo riêng: biến `KIT_THEMES_DIR`, `KIT_DATA_DIR`, `KIT_CONFIG` (xem README).
+A theme can live in its own repo: `KIT_THEMES_DIR`, `KIT_DATA_DIR`, `KIT_CONFIG` (see README).
 
-## Quy tắc
+## Rules
 
-- **Theme không sửa lõi.** Thiếu tính năng thì làm trong `theme.js`; chỉ sửa `src/` hoặc `public/sdk/` khi người dùng muốn nâng cấp kit cho mọi theme, và chạy `pnpm test` sau khi sửa.
-- **Khung 1080 × 1920, xem trên điện thoại**: chữ từ 20px; giữ chữ, bảng trong vùng an toàn (`Kit.safe`: trên 240px, hai bên 100px, nửa trái từ y 1250, dưới từ y 1760). Không che vật chính của ảnh nền.
-- **Dữ liệu người xem không đáng tin**: tên, bình luận đưa vào DOM qua `textContent` hoặc escape, không `innerHTML` trực tiếp.
-- **Live đông**: không tạo vòng lặp, hạt, âm thanh không giới hạn; dùng giới hạn có sẵn (`maxTags`, `fps`, `sounds.cooldown`).
-- **Trang tải lại bất cứ lúc nào**: trạng thái cần giữ thì lấy từ server (`Live.on('state')`), không chỉ giữ trong biến của trang.
-- **Không commit** `data/` (phiên live, luật đã chỉnh, cache giọng), `assets/raw/`, key, token (`signApiKey`).
-- Ghi nguồn asset vào `themes/<id>/CREDITS.md`.
+- **Themes don't modify the core.** Missing features go in `theme.js`; only change `src/` or `public/sdk/` when the user wants to upgrade the kit for every theme, and run `pnpm test` afterwards.
+- **1080 × 1920 frame, watched on phones**: text 20px or more; keep text and panels inside the safe zone (`Kit.safe`: top 240px, 100px each side, left half from y 1250, bottom from y 1760). Don't cover the background's main subject.
+- **Viewer data is untrusted**: names and comments go into the DOM via `textContent` or escaping, never raw `innerHTML`.
+- **Busy lives**: no unbounded loops, particles or sounds; use the built-in limits (`maxTags`, `fps`, `sounds.cooldown`).
+- **The page can reload at any time**: state worth keeping comes from the server (`Live.on('state')`), not only page variables.
+- **Voice is Vietnamese only** (`vi-VN` voices); voice lines in `theme.json` should be Vietnamese.
+- **Don't commit** `data/` (live sessions, edited rules, voice cache), `assets/raw/`, keys or tokens (`signApiKey`).
+- Credit assets in `themes/<id>/CREDITS.md`.

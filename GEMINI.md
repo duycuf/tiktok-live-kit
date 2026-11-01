@@ -1,1 +1,1 @@
-Đọc [AGENTS.md](AGENTS.md): hướng dẫn cho AI làm việc trong repo này.
+Read [AGENTS.md](AGENTS.md): instructions for AI coding agents working in this repo.
