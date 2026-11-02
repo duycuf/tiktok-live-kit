@@ -4,6 +4,8 @@
 
 ## Chưa phát hành
 
+- Cảnh 3D: `scene.json` `"renderer": "3d"` chạy cảnh bằng Three.js (`sdk/scene3d.js`), cùng giao diện với 2D: không gian GLB và nhân vật có khung xương với các clip động tác, chỗ đứng đám đông, lối giữa, ghế danh dự, camera bay tới người tặng, ánh sáng, phát sáng, người giữ chỗ khi chưa có mô hình. Thêm khung trống `themes/template-3d`. Three.js 0.186 phục vụ ở `/vendor/three/`.
+
 - Bảng điều khiển chia 5 tab (Live, Luật, Thử nghiệm, Thống kê, Hướng dẫn), khung xem trước overlay luôn ở bên phải: thư viện quà có ảnh (bấm để thêm luật), nút thử trên từng dòng luật, nút thử quà theo nhóm giá, thả 10 / 30 / 60 / 400 người, hướng dẫn lên live ngay trong bảng.
 - Phiếu ý tưởng theme `docs/IDEA.vi.md`: AI hỏi ý tưởng người dùng, chốt bản kế hoạch một trang rồi mới làm; bảng điều khiển hiện các bước và câu lệnh mẫu khi đang chạy khung trống.
 - Bảng điều khiển đổi giao diện theo duycuf.vn: khối xanh đen loang xanh / cam, màu nhấn cam ember, font Be Vietnam Pro và JetBrains Mono.

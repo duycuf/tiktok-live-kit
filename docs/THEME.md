@@ -168,6 +168,47 @@ AI-drawn character sheets are rarely evenly spaced: use the sheet cutter (detect
 "sounds": { "bell": { "cooldown": 3000, "duck": 0.7 }, "like": false }   // assets/sfx/<name>.mp3, music: assets/music/*.mp3
 ```
 
+## 3D scenes (Three.js)
+
+A theme can use a 3D scene instead of a background image: GLB / glTF models for the place and the characters, a real camera that flies to the gifter, lights and glow. Everything else stays the same: `theme.json` actions, rules, voice, HUD, effects (drawn on a 2D layer on top), name tags and chat bubbles.
+
+Start from `themes/template-3d` (its `index.html` adds the Three.js import map and `/sdk/scene3d.js`). Without models it shows placeholder people (body + head) that still bow, bounce and walk, so you can test the flow first.
+
+```jsonc
+// scene.json, units are metres: x across, y up, z towards the camera (the stage is at negative z)
+{
+  "renderer": "3d",
+  "camera": { "position": [0, 7.5, 19], "target": [0, 1.2, 0], "fov": 55 },
+  "world": "assets/3d/stage.glb", "worldScale": 1,      // the place (optional; without it a flat floor is drawn)
+  "background": "#17141f", "fog": { "color": "#17141f", "near": 22, "far": 48 },
+  "lights": { "ambient": 0.9, "sun": { "intensity": 1.6, "position": [6, 12, 8], "shadows": false },
+              "points": [{ "at": [0, 3, -4], "color": "#ff8a5c", "intensity": 25, "distance": 12 }] },
+  "floor": { "x": [-4, 4], "z": [-0.5, 8] },            // where the crowd stands
+  "aisle": { "x": 0, "half": 0.6 }, "spacing": 0.8, "fill": { "rows": 0 },
+  "seats": [[-1.4, -1.8], [1.4, -1.8]],                 // honour seats for top gifters
+  "points": { "stage": [0, -3.2], "focus": [0, 2, -4], "entry": [0, 14] },   // [x, z] on the floor or [x, y, z]
+  "bloom": { "strength": 0.5, "radius": 0.4, "threshold": 0.85 },
+  "facing": "focus",                                    // idle people look at "focus" / "stage"; "camera" = face the viewers
+  "maxAnimated": 120, "fps": 30
+}
+```
+
+```jsonc
+// theme.json: a 3D character is a rigged GLB with its animation clips inside
+"characters": [{
+  "id": "guest", "label": "Guest", "keywords": ["guest"],
+  "model": "assets/3d/guest.glb", "height": 1.7,        // scaled to this height in metres
+  "clips": { "idle": "Idle", "walk": "Walk", "cheer": "Wave", "nod": "Interact", "dance": "Dance" }
+}],
+"animations": { "bow": { "clip": "Bow", "ms": 1600 } }  // optional: how long one "play" lasts
+```
+
+`pose` and `play` steps use the names in `clips`; a missing name falls back to a clip with the same name (case-insensitive), then to `idle`. `walk` is used while moving. The same step lists work in 2D and 3D: `walk`, `play`, `camera`, `spotlight`, `aura`, `boost`, `say`, `crowd`, `fx`.
+
+Models: CC0 packs such as Quaternius, Kenney, KayKit, or Mixamo animations. Prefer characters under ~5k triangles with 1–2 materials; tested on a Radeon 780M laptop GPU, about 110 Quaternius characters (around 10 parts each, ~1,150 draw calls) render in 20–23 ms, enough for 30 fps. Far-away people update their animation less often (`maxAnimated`). `?scene` draws the floor, slots, seats and points projected from the 3D world.
+
+In `theme.js`, `Kit.scene.three` gives `{ THREE, scene, camera, renderer }` to add your own 3D objects.
+
 ## theme.js: custom parts
 
 ```js

@@ -53,6 +53,7 @@ The voice is Vietnamese only (two voices: female HoaiMy, male NamMinh).
 - What do you already have: background, characters, effects, music, sound effects?
 - Missing ones: generate with AI (see [ASSETS-GUIDE.md](ASSETS-GUIDE.md)), or start with placeholder shapes?
 - Art style: photo, 3D, anime, flat cartoon?
+- **2D or 3D?** 2D = one background image + character sheets (easy to make beautiful with AI images). 3D = GLB models and a moving camera (free CC0 model packs exist; heavier on the computer).
 
 ## 8. Going live
 

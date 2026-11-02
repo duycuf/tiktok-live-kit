@@ -17,6 +17,7 @@
   "dependencies": {
     "lottie-web": "5.12.2",
     "msedge-tts": "2.1.1",
+    "three": "0.186.1",
     "tiktok-live-connector": "^2.5.0",
     "ws": "^8.22.0"
   },

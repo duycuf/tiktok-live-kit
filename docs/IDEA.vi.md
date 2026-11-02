@@ -53,6 +53,7 @@ Giọng đọc chỉ có tiếng Việt (hai giọng: nữ HoaiMy, nam NamMinh).
 - Đã có sẵn gì: ảnh nền, nhân vật, hiệu ứng, nhạc nền, tiếng hiệu ứng?
 - Thiếu thì gen bằng AI (xem [ASSETS-GUIDE.vi.md](ASSETS-GUIDE.vi.md)), hay dùng hình khối tạm trước?
 - Phong cách: ảnh thật, 3D, anime, hoạt hình phẳng?
+- **2D hay 3D?** 2D = một ảnh nền + tờ nhân vật (dễ làm đẹp bằng ảnh AI). 3D = mô hình GLB và camera chuyển động (có sẵn bộ mô hình CC0 miễn phí; nặng máy hơn).
 
 ## 8. Lên live
 

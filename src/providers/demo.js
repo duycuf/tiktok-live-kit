@@ -46,10 +46,11 @@ export function createDemo({ onEvent, extraChats = [] }) {
     if (ev) onEvent(ev);
   }
 
-  // Thả n người vào cùng lúc (rải trong vài giây) để thử cảnh đông
-  function crowd(n) {
+  // Thả n người vào (rải đều, dưới giới hạn maxJoinsPerSecond của engine để không bị bỏ bớt) để thử cảnh đông
+  function crowd(n, perSecond = 12) {
     const total = Math.max(1, Math.min(500, Math.round(Number(n) || 0)));
-    for (let i = 0; i < total; i++) setTimeout(() => fire('member'), Math.round((i * 4000) / total));
+    const gap = Math.max(4000 / total, 1000 / Math.max(1, perSecond));
+    for (let i = 0; i < total; i++) setTimeout(() => fire('member'), Math.round(i * gap));
   }
 
   // gifts: false khi đang lên sóng thật: chỉ có người vào, chat, tim cho cảnh có không khí, không bày quà giả trước mặt người xem

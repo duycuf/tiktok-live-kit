@@ -6,7 +6,7 @@ A shared framework for building **interactive games / overlays for TikTok LIVE**
 
 The core is written once. Each topic (café, dance floor, fishing pond…) is a **theme** dropped into `themes/` and switched live from the control panel.
 
-The kit ships no ready-made themes, only the blank `themes/template` to copy for your own topic. A theme's look comes from the assets you prepare (background, characters, GIFs, video, music).
+The kit ships no ready-made themes, only the blank `themes/template` (2D) and `themes/template-3d` (3D, Three.js) to copy for your own topic. A theme's look comes from the assets you prepare (background, characters, GIFs, video, music).
 
 | Doc | Contents |
 |---|---|
@@ -98,7 +98,7 @@ The theme can be switched while running; the overlay reloads itself.
 
 ## Making a theme
 
-See [docs/THEME.md](docs/THEME.md). Summary: copy `themes/template`, put assets in `assets/`, measure the scene in `scene.json`, then declare the action for each gift tier in `theme.json`. Write `theme.js` for custom effects. A theme can draw with anything (DOM, Canvas, Three.js). External games such as Unity can also connect to the `/ws` WebSocket with `{"type":"hello","role":"overlay"}`.
+See [docs/THEME.md](docs/THEME.md). Summary: copy `themes/template`, put assets in `assets/`, measure the scene in `scene.json`, then declare the action for each gift tier in `theme.json`. Write `theme.js` for custom effects. A theme can be 2D (background image + character sheets) or 3D (`"renderer": "3d"`: GLB models, a real camera, lights; see "3D scenes" in THEME.md), or draw with anything (DOM, Canvas). External games such as Unity can also connect to the `/ws` WebSocket with `{"type":"hello","role":"overlay"}`.
 
 ## Structure
 

@@ -193,6 +193,11 @@
       canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%';
       stage.prepend(canvas);
       Live.stage(stage, K.W, K.H);
+      // scene.json "renderer": "3d": dùng cảnh Three.js (sdk/scene3d.js), cùng giao diện với cảnh 2D
+      if (theme.scene?.renderer === '3d') {
+        if (K.scene3d) K.scene = K.scene3d;
+        else console.error('[Kit] scene.json "renderer": "3d" cần nạp /sdk/scene3d.js trong index.html (xem themes/template-3d)');
+      }
       K.scene.init({ canvas, theme, settings });
       K.hud.init({ stage, theme });
       if (new URLSearchParams(location.search).has('safe')) showSafeZones(stage);

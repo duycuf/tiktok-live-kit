@@ -14,6 +14,9 @@ importers:
       msedge-tts:
         specifier: 2.1.1
         version: 2.1.1
+      three:
+        specifier: 0.186.1
+        version: 0.186.1
       tiktok-live-connector:
         specifier: ^2.5.0
         version: 2.5.0
@@ -265,6 +268,9 @@ packages:
   tagged-tag@1.0.0:
     resolution: {integrity: sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==}
     engines: {node: '>=20'}
+
+  three@0.186.1:
+    resolution: {integrity: sha512-blFeqb49wRCSGUGj7gtpfnSGHy2lwDk94RhUmS1c/hTby70kvChbWpkJ4Pm1390LqzzvTmzgXKHPEafJwCb8jA==}
 
   tiktok-live-api-sdk@0.4.0-beta1:
     resolution: {integrity: sha512-rnd6hczshMsWdVSAuyG+YSRL2EmL3iagK6y/wkVwmbnB2vRHnleKvD5JS/ZtxlRvgSLL5SnNNyoUHzKyesv8Bg==}
@@ -555,6 +561,8 @@ snapshots:
       safe-buffer: 5.2.1
 
   tagged-tag@1.0.0: {}
+
+  three@0.186.1: {}
 
   tiktok-live-api-sdk@0.4.0-beta1:
     dependencies:

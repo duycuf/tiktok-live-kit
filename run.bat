@@ -14,7 +14,11 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not exist "node_modules\ws\package.json" (
+rem thieu thu vien nao (vd three cho theme 3D sau khi cap nhat kit) thi cai lai
+set "NEED_INSTALL="
+if not exist "node_modules\ws\package.json" set "NEED_INSTALL=1"
+if not exist "node_modules\three\package.json" set "NEED_INSTALL=1"
+if defined NEED_INSTALL (
   echo [1/2] Dang cai thu vien...
   where pnpm >nul 2>&1
   if errorlevel 1 (

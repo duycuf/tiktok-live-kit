@@ -173,7 +173,7 @@ function saveConfig(patch) {
 }
 
 // ---------- HTTP ----------
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav', '.mp4': 'video/mp4', '.webm': 'video/webm', '.glb': 'model/gltf-binary', '.woff2': 'font/woff2', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav', '.mp4': 'video/mp4', '.webm': 'video/webm', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.hdr': 'application/octet-stream', '.ktx2': 'image/ktx2', '.woff2': 'font/woff2', '.ico': 'image/x-icon' };
 
 function serveFile(res, base, rel) {
   const file = path.normalize(path.join(base, rel));
@@ -212,6 +212,9 @@ const server = http.createServer((req, res) => {
   }
   if (p.startsWith('/tts/')) return serveFile(res, path.join(DATA, 'tts'), p.slice(5));
   if (p === '/vendor/lottie.min.js') return serveFile(res, path.join(ROOT, 'node_modules', 'lottie-web', 'build', 'player'), 'lottie.min.js');
+  // Three.js cho theme 3D (scene.json "renderer": "3d"): /vendor/three/three.module.js, /vendor/three/addons/... (examples/jsm)
+  if (p.startsWith('/vendor/three/addons/')) return serveFile(res, path.join(ROOT, 'node_modules', 'three', 'examples', 'jsm'), p.slice(21));
+  if (p.startsWith('/vendor/three/')) return serveFile(res, path.join(ROOT, 'node_modules', 'three', 'build'), p.slice(14));
   if (p.startsWith('/control/')) return serveFile(res, path.join(ROOT, 'public', 'control'), p.slice(9) || 'index.html');
   if (p.startsWith('/sdk/')) return serveFile(res, path.join(ROOT, 'public', 'sdk'), p.slice(5));
   if (p.startsWith('/themes/')) {
@@ -281,7 +284,7 @@ const CONTROL = {
   },
   async disconnect() { await manager.stop(); },
   sim(m) { demo.fire(m.kind, m.arg, m.arg2, m.gift); },
-  crowd(m) { demo.crowd(m.n); },
+  crowd(m) { demo.crowd(m.n, (config.maxJoinsPerSecond || 15) * 0.8); },
   demo(m) { demo.auto(Number(m.rate) || 0, { gifts: manager.status.state === 'idle' }); pushState(); }, // đang nối live thật: giả lập không tạo quà
   test(m) {
     // Bắn thẳng một hành động của theme để xem hiệu ứng, không cộng điểm

@@ -6,7 +6,7 @@ Bộ khung chung để làm **game / overlay tương tác cho TikTok LIVE**. Ng�
 
 Lõi viết một lần. Mỗi chủ đề (quán cà phê, sàn nhảy, hồ câu cá…) là một **theme** cắm vào thư mục `themes/`, đổi ngay trên bảng điều khiển.
 
-Kit không kèm theme làm sẵn, chỉ có khung trống `themes/template` để chép ra làm chủ đề của mình. Vẻ đẹp của theme đến từ asset (ảnh nền, nhân vật, GIF, video, nhạc) do bạn chuẩn bị.
+Kit không kèm theme làm sẵn, chỉ có khung trống `themes/template` (2D) và `themes/template-3d` (3D, Three.js) để chép ra làm chủ đề của mình. Vẻ đẹp của theme đến từ asset (ảnh nền, nhân vật, GIF, video, nhạc) do bạn chuẩn bị.
 
 | Tài liệu | Nội dung |
 |---|---|
@@ -98,7 +98,7 @@ Năm tab, bên phải luôn có khung xem trước overlay và top 3 người t�
 
 ## Làm theme mới
 
-Xem [docs/THEME.vi.md](docs/THEME.vi.md). Tóm tắt: chép `themes/template`, thả asset vào `assets/`, đo cảnh trong `scene.json`, rồi khai báo hành động cho từng mức quà trong `theme.json`. Cần hiệu ứng riêng thì viết thêm `theme.js`. Theme vẽ bằng gì cũng được (DOM, Canvas, Three.js). Game ngoài như Unity cũng nối được vào WebSocket `/ws` với `{"type":"hello","role":"overlay"}`.
+Xem [docs/THEME.vi.md](docs/THEME.vi.md). Tóm tắt: chép `themes/template`, thả asset vào `assets/`, đo cảnh trong `scene.json`, rồi khai báo hành động cho từng mức quà trong `theme.json`. Cần hiệu ứng riêng thì viết thêm `theme.js`. Theme có thể là 2D (ảnh nền + tờ nhân vật) hoặc 3D (`"renderer": "3d"`: mô hình GLB, camera thật, ánh sáng; xem mục "Cảnh 3D" trong THEME.vi.md), hoặc tự vẽ bằng gì cũng được (DOM, Canvas). Game ngoài như Unity cũng nối được vào WebSocket `/ws` với `{"type":"hello","role":"overlay"}`.
 
 ## Cấu trúc
 

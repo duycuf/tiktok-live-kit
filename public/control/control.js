@@ -231,7 +231,7 @@ function connect() {
       const changed = theme && theme.id !== msg.theme.id;
       theme = msg.theme; rules = msg.rules; gifts = msg.gifts || []; presetGifts = msg.presetGifts || [];
       document.title = `${theme.name} · TikTok Live Kit`;
-      document.querySelectorAll('[data-starter]').forEach((el) => (el.hidden = theme.id !== 'template')); // khung trống: gợi ý làm theme riêng
+      document.querySelectorAll('[data-starter]').forEach((el) => (el.hidden = !theme.id.startsWith('template'))); // khung trống: gợi ý làm theme riêng
       $('themeSel').innerHTML = msg.themes.map((t) => `<option value="${esc(t.id)}"${t.id === theme.id ? ' selected' : ''}>${esc(t.name)}</option>`).join('');
       $('provider').value = msg.config.provider;
       if (!$('user').value) $('user').value = msg.config.tiktokUsername;

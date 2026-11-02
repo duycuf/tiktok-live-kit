@@ -371,86 +371,97 @@
   }
 
   // ---------- Nhãn tên, bong bóng chat ----------
-  function roundRect(x, y, w, h, r) {
-    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
-  }
-
-  // Nhãn tên: top 3 trên ghế, người vừa tặng / chat / đang làm hành động, rồi người mới vào.
-  // Tối đa maxTags nhãn (scene.json "maxTags", không tính top 3) và không cho nhãn đè lên nhau.
-  function tagRect(p) {
-    const hd = P.head(p);
-    ctx.font = '700 27px "Be Vietnam Pro", system-ui, sans-serif';
-    const w = ctx.measureText(p.name.slice(0, 14)).width + 62;
-    const top = hd.y - 40 - (p.bubble ? 96 : 0);
-    return { x: p.x - w / 2 - 4, y: top - 4, w: Math.max(w, p.bubble ? 320 : 0) + 8, h: hd.y - top + 8 };
-  }
-  function pickTags(all, t) {
-    const cand = [];
-    for (const p of all) {
-      p.showTag = false;
-      if (p.leaving) continue;
-      if (p.npc) { p.showTag = p.showName; continue; }
-      const vip = p.slot?.vip && p.rank > 0 && p.rank <= 3;
-      const acting = (p.task || p.tasks.length) && p.lastActive > p.joinedAt && t - p.lastActive < 30000;
-      const recent = p.bubble || t - p.lastActive < 9000 || acting;
-      const fresh = t - p.joinedAt < 5000;
-      if (vip || recent || fresh) cand.push({ p, pri: vip ? 0 : recent ? 1 : 2 });
+  // Dùng chung cho cảnh 2D và 3D (Kit.makeLabels): head(p) trả toạ độ đầu trên khung 1080 x 1920.
+  function makeLabels({ head, color = (k, d) => d, maxTags: tagsOf = () => 8 }) {
+    let ctx = null;
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
     }
-    cand.sort((a, b) => a.pri - b.pri || b.p.lastActive - a.p.lastActive || b.p.joinedAt - a.p.joinedAt);
-    const placed = [];
-    let n = 0;
-    ctx.save();
-    for (const { p, pri } of cand) {
-      if (pri > 0 && n >= maxTags) break;
-      const r = tagRect(p);
-      if (placed.some((q) => r.x < q.x + q.w && r.x + r.w > q.x && r.y < q.y + q.h && r.y + r.h > q.y)) continue;
-      placed.push(r);
-      p.showTag = true;
-      if (pri > 0) n++;
-    }
-    ctx.restore();
-  }
 
-  function drawTag(p) {
-    const hd = P.head(p);
-    if (!p.showTag) { if (p.npc && p.bubble) drawBubble(p.x, hd.y - 2, p.bubble.text); return; }
-    if (p.bubble) drawBubble(p.x, hd.y - 44, p.bubble.text);
-    ctx.save();
-    ctx.font = '700 27px "Be Vietnam Pro", system-ui, sans-serif';
-    const medal = ['', '🥇 ', '🥈 ', '🥉 '][p.rank] || '';
-    const name = medal + (p.name.length > 14 ? p.name.slice(0, 13) + '…' : p.name);
-    const w = ctx.measureText(name).width + (p.npc ? 24 : 56), h = 40;
-    const x = Math.max(4, Math.min(W - w - 4, p.x - w / 2)), y = hd.y - h;
-    ctx.globalAlpha = p.leaving ? 0 : 0.94;
-    ctx.fillStyle = col('tagBg', 'rgba(25,14,10,.8)'); roundRect(x, y, w, h, 8); ctx.fill();
-    ctx.strokeStyle = col('tagBorder', 'rgba(214,168,82,.55)'); ctx.lineWidth = 1; ctx.stroke();
-    if (!p.npc) {
-      ctx.save(); ctx.beginPath(); ctx.arc(x + 21, y + h / 2, 15, 0, 6.283); ctx.clip();
-      if (p.avatar && p.avatar.complete && p.avatar.naturalWidth) ctx.drawImage(p.avatar, x + 6, y + h / 2 - 15, 30, 30);
-      else { ctx.fillStyle = '#8a7a6a'; ctx.fill(); }
+    // Nhãn tên: top 3 trên ghế, người vừa tặng / chat / đang làm hành động, rồi người mới vào.
+    // Tối đa maxTags nhãn (scene.json "maxTags", không tính top 3) và không cho nhãn đè lên nhau.
+    function tagRect(p) {
+      const hd = head(p);
+      ctx.font = '700 27px "Be Vietnam Pro", system-ui, sans-serif';
+      const w = ctx.measureText(p.name.slice(0, 14)).width + 62;
+      const top = hd.y - 40 - (p.bubble ? 96 : 0);
+      return { x: hd.x - w / 2 - 4, y: top - 4, w: Math.max(w, p.bubble ? 320 : 0) + 8, h: hd.y - top + 8 };
+    }
+    function pickTags(all, t) {
+      const cand = [];
+      for (const p of all) {
+        p.showTag = false;
+        if (p.leaving) continue;
+        if (p.npc) { p.showTag = p.showName; continue; }
+        const vip = p.slot?.vip && p.rank > 0 && p.rank <= 3;
+        const acting = (p.task || p.tasks.length) && p.lastActive > p.joinedAt && t - p.lastActive < 30000;
+        const recent = p.bubble || t - p.lastActive < 9000 || acting;
+        const fresh = t - p.joinedAt < 5000;
+        if (vip || recent || fresh) cand.push({ p, pri: vip ? 0 : recent ? 1 : 2 });
+      }
+      cand.sort((a, b) => a.pri - b.pri || b.p.lastActive - a.p.lastActive || b.p.joinedAt - a.p.joinedAt);
+      const placed = [];
+      let n = 0;
+      ctx.save();
+      for (const { p, pri } of cand) {
+        if (pri > 0 && n >= tagsOf()) break;
+        const r = tagRect(p);
+        if (placed.some((q) => r.x < q.x + q.w && r.x + r.w > q.x && r.y < q.y + q.h && r.y + r.h > q.y)) continue;
+        placed.push(r);
+        p.showTag = true;
+        if (pri > 0) n++;
+      }
       ctx.restore();
     }
-    ctx.fillStyle = col('tagText', '#fff'); ctx.textBaseline = 'middle';
-    ctx.fillText(name, x + (p.npc ? 12 : 42), y + h / 2 + 1);
-    ctx.restore();
-  }
 
-  function drawBubble(cx, bottom, text) {
-    ctx.save();
-    ctx.font = '600 28px "Be Vietnam Pro", system-ui, sans-serif';
-    const words = String(text).split(/\s+/), lines = [];
-    let line = '';
-    for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > 290 && line) { lines.push(line); line = w; } else line = t; }
-    if (line) lines.push(line);
-    if (lines.length > 2) { lines.length = 2; lines[1] = lines[1].slice(0, 20) + '…'; }
-    const w = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 32, h = lines.length * 34 + 20;
-    const x = Math.max(6, Math.min(W - w - 6, cx - w / 2)), y = bottom - h;
-    ctx.fillStyle = col('bubbleBg', 'rgba(30,22,20,.86)'); roundRect(x, y, w, h, 12); ctx.fill();
-    ctx.fillStyle = col('bubbleText', '#fff'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    lines.forEach((l, i) => ctx.fillText(l, x + w / 2, y + 11 + i * 34));
-    ctx.restore();
+    function drawTag(p) {
+      const hd = head(p);
+      if (!p.showTag) { if (p.npc && p.bubble) drawBubble(hd.x, hd.y - 2, p.bubble.text); return; }
+      if (p.bubble) drawBubble(hd.x, hd.y - 44, p.bubble.text);
+      ctx.save();
+      ctx.font = '700 27px "Be Vietnam Pro", system-ui, sans-serif';
+      const medal = ['', '🥇 ', '🥈 ', '🥉 '][p.rank] || '';
+      const name = medal + (p.name.length > 14 ? p.name.slice(0, 13) + '…' : p.name);
+      const w = ctx.measureText(name).width + (p.npc ? 24 : 56), h = 40;
+      const x = Math.max(4, Math.min(W - w - 4, hd.x - w / 2)), y = hd.y - h;
+      ctx.globalAlpha = p.leaving ? 0 : 0.94;
+      ctx.fillStyle = color('tagBg', 'rgba(25,14,10,.8)'); roundRect(x, y, w, h, 8); ctx.fill();
+      ctx.strokeStyle = color('tagBorder', 'rgba(214,168,82,.55)'); ctx.lineWidth = 1; ctx.stroke();
+      if (!p.npc) {
+        ctx.save(); ctx.beginPath(); ctx.arc(x + 21, y + h / 2, 15, 0, 6.283); ctx.clip();
+        if (p.avatar && p.avatar.complete && p.avatar.naturalWidth) ctx.drawImage(p.avatar, x + 6, y + h / 2 - 15, 30, 30);
+        else { ctx.fillStyle = '#8a7a6a'; ctx.fill(); }
+        ctx.restore();
+      }
+      ctx.fillStyle = color('tagText', '#fff'); ctx.textBaseline = 'middle';
+      ctx.fillText(name, x + (p.npc ? 12 : 42), y + h / 2 + 1);
+      ctx.restore();
+    }
+
+    function drawBubble(cx, bottom, text) {
+      ctx.save();
+      ctx.font = '600 28px "Be Vietnam Pro", system-ui, sans-serif';
+      const words = String(text).split(/\s+/), lines = [];
+      let line = '';
+      for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > 290 && line) { lines.push(line); line = w; } else line = t; }
+      if (line) lines.push(line);
+      if (lines.length > 2) { lines.length = 2; lines[1] = lines[1].slice(0, 20) + '…'; }
+      const w = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 32, h = lines.length * 34 + 20;
+      const x = Math.max(6, Math.min(W - w - 6, cx - w / 2)), y = bottom - h;
+      ctx.fillStyle = color('bubbleBg', 'rgba(30,22,20,.86)'); roundRect(x, y, w, h, 12); ctx.fill();
+      ctx.fillStyle = color('bubbleText', '#fff'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      lines.forEach((l, i) => ctx.fillText(l, x + w / 2, y + 11 + i * 34));
+      ctx.restore();
+    }
+    return {
+      pick(c, all, t) { ctx = c; pickTags(all, t); },
+      draw(c, p) { ctx = c; drawTag(p); },
+      bubble(c, cx, bottom, text) { ctx = c; drawBubble(cx, bottom, text); },
+    };
   }
+  K.makeLabels = makeLabels;
+  const labels = makeLabels({ head: (p) => P.head(p), color: col, maxTags: () => maxTags });
 
   // ---------- Ghế danh dự: top N người tặng nhiều nhất ----------
   function seatTop(top = []) {
@@ -573,8 +584,8 @@
     for (const p of all) drawPerson(p, t);
     K.fx.draw(ctx, 'front', t);
     K.fx.draw(ctx, 'top', t);
-    pickTags(all, t);
-    for (let i = all.length - 1; i >= 0; i--) if (!all[i].leaving || persons.has(all[i].id)) drawTag(all[i]);
+    labels.pick(ctx, all, t);
+    for (let i = all.length - 1; i >= 0; i--) if (!all[i].leaving || persons.has(all[i].id)) labels.draw(ctx, all[i]);
     if (debugOverlay) drawDebug();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     K.fx.draw(ctx, 'screen', t);

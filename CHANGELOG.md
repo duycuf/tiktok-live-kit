@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- 3D scenes: `scene.json` `"renderer": "3d"` runs the scene in Three.js (`sdk/scene3d.js`) with the same API as 2D: GLB world and rigged characters with animation clips, crowd slots, aisle, honour seats, camera that flies to the gifter, lights, bloom, placeholder people when models are missing. New blank `themes/template-3d`. Three.js 0.186 served at `/vendor/three/`.
+
 - Control panel in five tabs (Live, Rules, Test, Stats, Guide) with the overlay preview always on the right: gift library with images (click to add a rule), a preview button on every rule row, gift test buttons grouped by price, 10 / 30 / 60 / 400-person crowd bursts, built-in going-live guide.
 - Theme idea questionnaire `docs/IDEA.md`: the AI agent interviews the user and gets a one-page plan approved before building; the control panel shows the steps and a ready prompt while the blank template runs.
 - Control panel restyled to match duycuf.vn: dark navy panels with soft blue / orange glows, ember orange accent, Be Vietnam Pro and JetBrains Mono.

@@ -166,6 +166,47 @@ Tờ nhân vật vẽ bằng AI thường không chia đều: dùng công cụ c
 "sounds": { "bell": { "cooldown": 3000, "duck": 0.7 }, "like": false }   // assets/sfx/<tên>.mp3, nhạc nền: assets/music/*.mp3
 ```
 
+## Cảnh 3D (Three.js)
+
+Theme có thể dùng cảnh 3D thay cho ảnh nền: mô hình GLB / glTF cho không gian và nhân vật, camera thật bay tới người tặng quà, ánh sáng và hiệu ứng phát sáng. Mọi thứ khác giữ nguyên: hành động trong `theme.json`, luật, giọng đọc, HUD, hiệu ứng (vẽ trên lớp 2D phía trên), nhãn tên, bong bóng chat.
+
+Bắt đầu từ `themes/template-3d` (`index.html` của nó đã có importmap cho Three.js và nạp `/sdk/scene3d.js`). Chưa có mô hình thì hiện người giữ chỗ (thân + đầu) vẫn biết cúi, nhún, đi, để thử luồng trước.
+
+```jsonc
+// scene.json, đơn vị mét: x sang ngang, y lên trên, z hướng về camera (sân khấu ở z âm)
+{
+  "renderer": "3d",
+  "camera": { "position": [0, 7.5, 19], "target": [0, 1.2, 0], "fov": 55 },
+  "world": "assets/3d/stage.glb", "worldScale": 1,      // không gian (tuỳ chọn; thiếu thì vẽ sàn phẳng)
+  "background": "#17141f", "fog": { "color": "#17141f", "near": 22, "far": 48 },
+  "lights": { "ambient": 0.9, "sun": { "intensity": 1.6, "position": [6, 12, 8], "shadows": false },
+              "points": [{ "at": [0, 3, -4], "color": "#ff8a5c", "intensity": 25, "distance": 12 }] },
+  "floor": { "x": [-4, 4], "z": [-0.5, 8] },            // vùng đám đông đứng
+  "aisle": { "x": 0, "half": 0.6 }, "spacing": 0.8, "fill": { "rows": 0 },
+  "seats": [[-1.4, -1.8], [1.4, -1.8]],                 // ghế danh dự cho top người tặng
+  "points": { "stage": [0, -3.2], "focus": [0, 2, -4], "entry": [0, 14] },   // [x, z] trên sàn hoặc [x, y, z]
+  "bloom": { "strength": 0.5, "radius": 0.4, "threshold": 0.85 },
+  "facing": "focus",                                    // đứng yên thì nhìn về "focus" / "stage"; "camera" = quay mặt ra khán giả
+  "maxAnimated": 120, "fps": 30
+}
+```
+
+```jsonc
+// theme.json: nhân vật 3D là một GLB có khung xương, chứa sẵn các clip động tác
+"characters": [{
+  "id": "khach", "label": "Khách", "keywords": ["khách"],
+  "model": "assets/3d/khach.glb", "height": 1.7,        // tự co giãn về chiều cao này (mét)
+  "clips": { "idle": "Idle", "walk": "Walk", "cheer": "Wave", "nod": "Interact", "dance": "Dance" }
+}],
+"animations": { "bow": { "clip": "Bow", "ms": 1600 } }  // tuỳ chọn: một lần "play" kéo dài bao lâu
+```
+
+Bước `pose` và `play` dùng tên trong `clips`; thiếu tên thì tìm clip trùng tên (không phân biệt hoa thường), rồi về `idle`. Lúc di chuyển dùng `walk`. Danh sách bước dùng chung cho 2D và 3D: `walk`, `play`, `camera`, `spotlight`, `aura`, `boost`, `say`, `crowd`, `fx`.
+
+Mô hình: các bộ CC0 như Quaternius, Kenney, KayKit, hoặc động tác Mixamo. Nên chọn nhân vật dưới khoảng 5.000 tam giác, 1–2 vật liệu. Thử trên card laptop Radeon 780M: khoảng 110 nhân vật Quaternius (mỗi con khoảng 10 phần, tổng khoảng 1.150 lượt vẽ) vẽ mất 20–23 ms, đủ 30 hình/giây. Người ở xa được cập nhật động tác thưa hơn (`maxAnimated`). `?scene` vẽ sàn, chỗ đứng, ghế, điểm chiếu từ thế giới 3D.
+
+Trong `theme.js`, `Kit.scene.three` cho `{ THREE, scene, camera, renderer }` để tự thêm vật thể 3D.
+
 ## theme.js: phần riêng
 
 ```js
