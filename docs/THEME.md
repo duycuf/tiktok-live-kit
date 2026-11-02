@@ -18,7 +18,7 @@ themes/<theme-name>/
 1. Copy `themes/template` to `themes/<new-name>` (English, kebab-case). To keep the theme in its own repo, see "Keeping a theme in its own repo" in the README.
 2. Put the background in `assets/`, open the overlay with `?scene` to see the measuring grid, then tune `scene.json` until people stand on the floor at the right size.
 3. Edit `theme.json`: actions per gift tier, chat commands, voice.
-4. Open the control panel, pick the theme, click the effect test buttons, turn on the demo to see a crowded scene.
+4. Open the control panel, pick the theme; in the **Test** tab (*Thử nghiệm*) click the effect buttons and drop a crowd to see a busy scene.
 
 Folders starting with `_` or `.` are ignored (use them for drafts).
 

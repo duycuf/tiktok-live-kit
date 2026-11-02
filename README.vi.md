@@ -74,15 +74,20 @@ Mất mạng, TikFinity tắt hay phần mềm phát tải lại trang đều kh
 
 ## Bảng điều khiển
 
-- **Kết nối**: chọn nguồn, xem trạng thái, xem "sự kiện cuối cách đây bao lâu" để biết luồng có đang chạy.
-- **Test Lab**: tạo người xem giả, quà 1/5/10/100 xu, combo, chế độ tự chạy (vừa / đông / cực đông). Sự kiện giả đi qua đúng đường ống như live thật. Có nút xem thử từng hiệu ứng của theme.
-- **Luật tương tác** (sửa trên web, không cần code):
+Năm tab, bên phải luôn có khung xem trước overlay và top 3 người tặng quà:
+
+- **Live**: chọn nguồn, kết nối, xem trạng thái và "sự kiện cuối cách đây bao lâu" để biết luồng có đang chạy; cài đặt theme; nhật ký.
+- **Luật** (sửa trên web, không cần code):
   - Ai được vào sân: mọi người, hoặc chỉ người chat từ khoá / tặng quà.
   - Bậc quà theo giá một món.
-  - Quà riêng theo ID hoặc tên. Danh sách tự học các món quà đã gặp trên live.
+  - Quà riêng theo ID hoặc tên, có **thư viện quà** (ảnh, tên, giá) tự học các món đã gặp trên live: bấm một quà là thêm luật cho nó.
   - Lệnh chat có thời gian chờ.
-- **Bảng xếp hạng**: top theo xu, danh hiệu, tải **CSV** sau buổi live để tri ân, nút **Phiên mới**.
-- **Theme**: đổi ngay khi đang chạy, overlay tự tải lại.
+  - Nút ▶ trên mỗi dòng cho xem hiệu ứng của dòng đó trước khi lưu.
+- **Thử nghiệm**: người xem giả, thả đám đông (10 / 30 / 60 / 400 người, để thử máy có chịu nổi), tự chạy (vừa / đông / cực đông), nút quà chia theo giá (nhỏ / vừa / lớn), nút xem từng hiệu ứng của theme, đọc thử giọng. Sự kiện giả đi qua đúng đường ống như live thật.
+- **Thống kê**: số liệu phiên, bảng xếp hạng kèm danh hiệu, tải **CSV** để tri ân, mục tiêu, nút **Phiên mới**.
+- **Hướng dẫn**: lên live trong 4 bước, ba cách phát, các địa chỉ overlay hay dùng, lỗi hay gặp.
+
+Đổi theme ngay khi đang chạy, overlay tự tải lại.
 
 ## Làm theme mới
 

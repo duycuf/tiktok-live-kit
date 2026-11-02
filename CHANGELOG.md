@@ -2,6 +2,12 @@
 
 **English** | [Tiếng Việt](CHANGELOG.vi.md)
 
+## Unreleased
+
+- Control panel in five tabs (Live, Rules, Test, Stats, Guide) with the overlay preview always on the right: gift library with images (click to add a rule), a preview button on every rule row, gift test buttons grouped by price, 10 / 30 / 60 / 400-person crowd bursts, built-in going-live guide.
+- Action icons that are image files now show as images in the control panel instead of their file path.
+- Going live: pick a setup first (LIVE Studio window capture, OBS virtual camera, OBS stream key), full OBS steps.
+
 ## 1.0.1 (2026-11-02)
 
 - Voice: greetings and comment read-outs are no longer dropped while fixed lines are pre-rendered in the background.

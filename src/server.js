@@ -267,7 +267,7 @@ const guideData = () => ({ rules, gifts: catalog.list().map((g) => ({ id: g.id, 
 
 function init(ws) {
   const base = { type: 'init', theme: publicTheme(), state: stateMsg(), settings: themeSettings };
-  if (ws.role === 'control') send(ws, { ...base, rules, gifts: catalog.list(), themes: listThemes(THEME_DIRS).map(({ dir, ...t }) => t), config: { provider: config.provider || 'auto', tiktokUsername: config.tiktokUsername || '', tikfinityUrl: config.tikfinityUrl } });
+  if (ws.role === 'control') send(ws, { ...base, rules, gifts: catalog.list(), presetGifts: demo.gifts.map((g) => ({ id: g.id, name: g.name, coins: g.unitCoins, image: '' })), themes: listThemes(THEME_DIRS).map(({ dir, ...t }) => t), config: { provider: config.provider || 'auto', tiktokUsername: config.tiktokUsername || '', tikfinityUrl: config.tikfinityUrl } });
   else send(ws, { ...base, players: session.active(config.snapshotPlayers || 300), guide: guideData() });
 }
 
@@ -280,14 +280,18 @@ const CONTROL = {
     manager.connect(config.tiktokUsername, config.provider);
   },
   async disconnect() { await manager.stop(); },
-  sim(m) { demo.fire(m.kind, m.arg, m.arg2); },
+  sim(m) { demo.fire(m.kind, m.arg, m.arg2, m.gift); },
+  crowd(m) { demo.crowd(m.n); },
   demo(m) { demo.auto(Number(m.rate) || 0, { gifts: manager.status.state === 'idle' }); pushState(); }, // đang nối live thật: giả lập không tạo quà
   test(m) {
     // Bắn thẳng một hành động của theme để xem hiệu ứng, không cộng điểm
     const a = theme.actions.find((x) => x.id === m.action);
     if (!a) return;
     const p = session.active(1)[0] || { id: 'test', name: 'Người thử', avatar: '', coins: 0, title: '', rank: 0 };
-    const ev = { kind: 'gift', at: Date.now(), user: { ...p, isPlayer: true }, gift: { id: '', name: 'Thử', image: '', coins: 0 }, count: 1, total: m.big ? 100 : 1, action: a.id, label: a.label, big: Boolean(m.big), test: true };
+    const text = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : '');
+    const coins = Math.max(1, Math.min(1e6, Number(m.coins) || (m.big ? 100 : 1)));
+    const gift = { id: '', name: text(m.giftName, 60) || 'Thử', image: /^https:\/\//.test(m.giftImage || '') ? text(m.giftImage, 500) : '', coins };
+    const ev = { kind: 'gift', at: Date.now(), user: { ...p, isPlayer: true }, gift, count: 1, total: coins, action: a.id, label: text(m.label, 60) || a.label, big: Boolean(m.big), test: true };
     broadcast({ type: 'event', ev });
     speak(voice.line(theme.voice, { ...ev, test: false }), { for: p.id });
   },

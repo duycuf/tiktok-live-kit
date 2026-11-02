@@ -37,7 +37,7 @@ LIVE Studio báo tài khoản không có quyền truy cập thì tài khoản ch
 ## 2. Chạy kit
 
 1. Chạy `run.bat` (lần đầu tự cài thư viện). Cửa sổ đen là server: **để mở suốt buổi live**.
-2. Bảng điều khiển tự mở ở http://localhost:3939: chọn theme, xem trạng thái kết nối, bấm thử hiệu ứng, bật giả lập.
+2. Bảng điều khiển tự mở ở http://localhost:3939: chọn theme, xem trạng thái kết nối, bấm thử hiệu ứng, bật giả lập. Tab **Hướng dẫn** tóm tắt trang này.
 
 ## 3. Đưa overlay vào phần mềm phát
 
@@ -70,8 +70,8 @@ Chấm trạng thái xanh và dòng "sự kiện cuối cách đây …" chạy 
 
 ## 5. Trước khi lên sóng
 
-- Bấm thử các hiệu ứng, **Đọc thử** giọng.
-- Bật **Tự chạy** trong Test Lab để xem cảnh đông người; **tắt đi** và bấm **Phiên mới** trước khi lên sóng thật (nối được live thật thì giả lập cũng tự tắt).
+- Tab **Thử nghiệm**: bấm thử các hiệu ứng và nút quà, **Đọc thử** giọng, thả 60 hoặc 400 người để xem máy có chịu nổi.
+- **Tự chạy** cho xem cảnh đông người; **Tắt** đi và bấm **Phiên mới** (tab **Thống kê**) trước khi lên sóng thật (nối được live thật thì giả lập cũng tự tắt).
 - Mở `/overlay?safe` xem chữ, bảng có nằm trong vùng an toàn không.
 - Câu đọc cố định (bốc thăm, thông báo định kỳ, lời mời) được đọc sẵn sau khi server chạy vài phút: chạy kit sớm trước giờ live.
 

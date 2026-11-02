@@ -74,15 +74,20 @@ Network drops, TikFinity restarts or the streaming app reloading the page need n
 
 ## Control panel
 
-- **Connection**: pick a source, see status and "last event N seconds ago" to know data is flowing.
-- **Test Lab**: fake viewers, 1/5/10/100-coin gifts, combos, auto mode (normal / busy / packed). Fake events go through the same pipeline as a real live. Buttons to preview each theme effect.
-- **Interaction rules** (edited on the web, no code):
+Five tabs, with the overlay preview and the top 3 gifters always on the right:
+
+- **Live**: pick a source, connect, see status and "last event N seconds ago" to know data is flowing; theme settings; event log.
+- **Rules** (*Luật*), edited on the web, no code:
   - Who enters the scene: everyone, or only people who chat a keyword / send a gift.
   - Gift tiers by single-gift price.
-  - Per-gift overrides by ID or name. The list learns gifts seen on live.
+  - Per-gift overrides by ID or name, with a **gift library** (image, name, price) that learns gifts seen on live: click one to add a rule.
   - Chat commands with cooldowns.
-- **Leaderboard**: top by coins, titles, **CSV** download after the live to thank supporters, **New session** button.
-- **Theme**: switch while running, the overlay reloads itself.
+  - A ▶ button on every row previews that row's effect before saving.
+- **Test** (*Thử nghiệm*): fake viewers, crowd bursts (10 / 30 / 60 / 400 people, to check the machine copes), auto mode (normal / busy / packed), gift buttons grouped by price (small / medium / large), a button per theme effect, voice test. Fake events go through the same pipeline as a real live.
+- **Stats** (*Thống kê*): session totals, leaderboard with titles, **CSV** download to thank supporters, goals, **New session** button.
+- **Guide** (*Hướng dẫn*): going live in 4 steps, the three streaming setups, useful overlay URLs, common problems.
+
+The theme can be switched while running; the overlay reloads itself.
 
 ## Making a theme
 

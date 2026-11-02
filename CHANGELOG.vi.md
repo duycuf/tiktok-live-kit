@@ -2,6 +2,12 @@
 
 [English](CHANGELOG.md) | **Tiếng Việt**
 
+## Chưa phát hành
+
+- Bảng điều khiển chia 5 tab (Live, Luật, Thử nghiệm, Thống kê, Hướng dẫn), khung xem trước overlay luôn ở bên phải: thư viện quà có ảnh (bấm để thêm luật), nút thử trên từng dòng luật, nút thử quà theo nhóm giá, thả 10 / 30 / 60 / 400 người, hướng dẫn lên live ngay trong bảng.
+- Biểu tượng hành động là file ảnh giờ hiện thành ảnh trong bảng điều khiển, không còn hiện đường dẫn.
+- Lên live: chọn cách phát trước (LIVE Studio quay cửa sổ, OBS qua camera ảo, OBS bằng khoá phát), hướng dẫn OBS đầy đủ.
+
 ## 1.0.1 (2026-11-02)
 
 - Giọng đọc: câu chào, đọc bình luận không còn bị bỏ khi đang đọc sẵn câu cố định ở nền.

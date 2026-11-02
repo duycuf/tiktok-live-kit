@@ -18,7 +18,7 @@ themes/<ten-theme>/
 1. Chép `themes/template` thành `themes/<ten-moi>` (tên tiếng Anh, kebab-case). Muốn để theme ở repo riêng thì xem mục "Để theme ở repo riêng" trong README.
 2. Thả ảnh nền vào `assets/`, mở overlay với `?scene` để thấy lưới đo, rồi chỉnh `scene.json` cho người đứng đúng sàn, đúng cỡ.
 3. Sửa `theme.json`: các hành động theo mức quà, lệnh chat, giọng đọc.
-4. Mở bảng điều khiển, chọn theme, bấm các nút thử hiệu ứng, bật giả lập để xem cảnh đông người.
+4. Mở bảng điều khiển, chọn theme; tab **Thử nghiệm** bấm các nút hiệu ứng và thả đám đông để xem cảnh đông người.
 
 Thư mục bắt đầu bằng `_` hoặc `.` bị bỏ qua (dùng cho bản nháp).
 

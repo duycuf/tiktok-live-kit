@@ -37,7 +37,7 @@ If LIVE Studio says the account has no access, the account isn't eligible to str
 ## 2. Run the kit
 
 1. Run `run.bat` (installs dependencies the first time). The black window is the server: **keep it open for the whole live**.
-2. The control panel opens at http://localhost:3939: pick a theme, check connection status, test effects, toggle the demo.
+2. The control panel opens at http://localhost:3939: pick a theme, check connection status, test effects, toggle the demo. Its **Guide** tab (*Hướng dẫn*) sums up this page.
 
 ## 3. Put the overlay into the streaming app
 
@@ -72,8 +72,8 @@ A green status dot and a ticking "last event … ago" line mean data is flowing.
 
 ## 5. Before going on air
 
-- Test the effects, use **Test voice** (*Đọc thử*).
-- Run the Test Lab auto mode (*Tự chạy*) to see a crowded scene; **turn it off** and click **New session** (*Phiên mới*) before the real live (connecting to a real live also stops the demo).
+- In the **Test** tab (*Thử nghiệm*): try the effects and the gift buttons, use **Test voice** (*Đọc thử*), drop a 60 or 400-person crowd to check the machine copes.
+- Auto mode (*Tự chạy*) shows a crowded scene; **turn it off** (*Tắt*) and click **New session** (*Phiên mới*, **Stats** tab) before the real live (connecting to a real live also stops the demo).
 - Open `/overlay?safe` to check text and panels are inside the safe zone.
 - Fixed lines (draws, periodic chants, prompts) are pre-rendered a few minutes after the server starts: start the kit well before the live.
 

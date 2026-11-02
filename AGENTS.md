@@ -38,7 +38,7 @@ pnpm assets:alpha <in.jpg> <out.png> --max 1024                                 
 3. Background → `scene.json`: open `/overlay?scene`, tune `horizonY`, `person`, `floor`, `aisle`, `seats`, `points` until people stand on the floor.
 4. `theme.json`: `actions` (step lists), `rules` (gift tiers, chat commands), `voice`, `characters`, `hud`, `colors`, `sounds`; optional `draws`, `periodic`, `prompts`, `reactions`, `titles`, `goals`. Every key is in `docs/THEME.md`.
 5. Only write `theme.js` when JSON can't do it (custom action via `Kit.action`, custom HUD replacing `Kit.hud`).
-6. Check: in the control panel click every effect test button, run Test Lab auto mode for a crowd, test the voice (*Đọc thử*); open `/overlay?safe` to check text is inside the safe zone.
+6. Check: in the control panel's **Thử nghiệm** tab click every effect button and the gift buttons, drop a 60 / 400-person crowd, test the voice (*Đọc thử*); open `/overlay?safe` to check text is inside the safe zone.
 
 A theme can live in its own repo: `KIT_THEMES_DIR`, `KIT_DATA_DIR`, `KIT_CONFIG` (see README).
 

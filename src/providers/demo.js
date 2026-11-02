@@ -33,15 +33,23 @@ export function createDemo({ onEvent, extraChats = [] }) {
     like: (n) => ({ kind: 'like', user: someone(), likeCount: n || 1 + Math.floor(Math.random() * 15) }),
     follow: () => ({ kind: 'follow', user: someone() }),
     share: () => ({ kind: 'share', user: someone() }),
-    gift: (coins, count = 1) => {
-      const g = GIFTS.find((x) => x.unitCoins === Number(coins)) || { id: 'demo-' + coins, name: `Quà ${coins} xu`, unitCoins: Number(coins) || 1 };
-      return { kind: 'gift', user: someone(), gift: { ...g, image: '', streakable: false, repeatCount: count, repeatEnd: true, groupId: '' } };
+    // gift: quà cụ thể (từ thư viện quà đã gặp) để thử đúng luật theo ID / tên
+    gift: (coins, count = 1, gift) => {
+      const g = gift?.id ? { id: String(gift.id), name: String(gift.name || 'Quà'), unitCoins: Number(gift.coins) || Number(coins) || 1, image: String(gift.image || '') }
+        : GIFTS.find((x) => x.unitCoins === Number(coins)) || { id: 'demo-' + coins, name: `Quà ${coins} xu`, unitCoins: Number(coins) || 1 };
+      return { kind: 'gift', user: someone(), gift: { image: '', ...g, streakable: false, repeatCount: Number(count) || 1, repeatEnd: true, groupId: '' } };
     },
   };
 
-  function fire(kind, arg, arg2) {
-    const ev = make[kind]?.(arg, arg2);
+  function fire(kind, arg, arg2, arg3) {
+    const ev = make[kind]?.(arg, arg2, arg3);
     if (ev) onEvent(ev);
+  }
+
+  // Thả n người vào cùng lúc (rải trong vài giây) để thử cảnh đông
+  function crowd(n) {
+    const total = Math.max(1, Math.min(500, Math.round(Number(n) || 0)));
+    for (let i = 0; i < total; i++) setTimeout(() => fire('member'), Math.round((i * 4000) / total));
   }
 
   // gifts: false khi đang lên sóng thật: chỉ có người vào, chat, tim cho cảnh có không khí, không bày quà giả trước mặt người xem
@@ -60,5 +68,5 @@ export function createDemo({ onEvent, extraChats = [] }) {
 
   function stop() { clearInterval(timer); timer = null; }
 
-  return { fire, auto, stop, get running() { return Boolean(timer); }, gifts: GIFTS };
+  return { fire, crowd, auto, stop, get running() { return Boolean(timer); }, gifts: GIFTS };
 }
