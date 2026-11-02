@@ -10,13 +10,20 @@ The kit ships no ready-made themes, only the blank `themes/template` to copy for
 
 | Doc | Contents |
 |---|---|
+| [docs/IDEA.md](docs/IDEA.md) | Your theme idea: the questions to answer before building (space, viewers, gifts, chat, voice, assets) |
 | [docs/THEME.md](docs/THEME.md) | Building a theme: structure, `scene.json`, `theme.json`, actions, voice, `theme.js` |
 | [docs/ASSETS-GUIDE.md](docs/ASSETS-GUIDE.md) | Where the beauty comes from: background, character sheet, effects, sound with AI image tools, processing tools |
 | [docs/GO-LIVE.md](docs/GO-LIVE.md) | Going live: LIVE Studio / OBS, TikFinity, pre-stream checks, common problems |
 | [AGENTS.md](AGENTS.md) | For AI coding agents (Claude Code, Codex, Gemini…): repo map, commands, rules |
 | [CHANGELOG.md](CHANGELOG.md) | Changes |
 
-Building with AI: open the repo in Claude Code / Codex / Cursor and say *"make me a <topic> theme"*; the agent reads `AGENTS.md` and asks you about assets.
+## Make your theme
+
+1. **Idea first.** Read [docs/IDEA.md](docs/IDEA.md): what the space is, who viewers become, what each gift does, chat commands, voice lines, which assets you have. You can leave it blank and let the AI ask.
+2. **Build it with AI.** Open the kit folder in Claude Code / Codex / Cursor and say: *"Read AGENTS.md and interview me with docs/IDEA.md to make a new theme."* The agent asks a few questions at a time, sums your answers up as a one-page plan, and only starts once you agree.
+3. **Try it.** Pick the new theme in the control panel, use the **Test** tab (*Thử nghiệm*), then go live ([docs/GO-LIVE.md](docs/GO-LIVE.md)).
+
+While the kit runs the blank template, the control panel shows these steps with the prompt ready to copy.
 
 ### Keeping a theme in its own repo
 

@@ -5,6 +5,7 @@
 ## Chưa phát hành
 
 - Bảng điều khiển chia 5 tab (Live, Luật, Thử nghiệm, Thống kê, Hướng dẫn), khung xem trước overlay luôn ở bên phải: thư viện quà có ảnh (bấm để thêm luật), nút thử trên từng dòng luật, nút thử quà theo nhóm giá, thả 10 / 30 / 60 / 400 người, hướng dẫn lên live ngay trong bảng.
+- Phiếu ý tưởng theme `docs/IDEA.vi.md`: AI hỏi ý tưởng người dùng, chốt bản kế hoạch một trang rồi mới làm; bảng điều khiển hiện các bước và câu lệnh mẫu khi đang chạy khung trống.
 - Bảng điều khiển đổi giao diện theo duycuf.vn: khối xanh đen loang xanh / cam, màu nhấn cam ember, font Be Vietnam Pro và JetBrains Mono.
 - Biểu tượng hành động là file ảnh giờ hiện thành ảnh trong bảng điều khiển, không còn hiện đường dẫn.
 - Lên live: chọn cách phát trước (LIVE Studio quay cửa sổ, OBS qua camera ảo, OBS bằng khoá phát), hướng dẫn OBS đầy đủ.

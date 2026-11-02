@@ -17,6 +17,11 @@ $('copyOv').onclick = () => navigator.clipboard?.writeText(OV);
 document.querySelectorAll('.origin').forEach((el) => (el.textContent = location.origin));
 document.querySelectorAll('.ovlink').forEach((el) => (el.textContent = OV));
 document.querySelectorAll('[data-ov]').forEach((a) => (a.href = OV + a.dataset.ov));
+document.querySelectorAll('[data-copy-prompt]').forEach((b) => (b.onclick = () => {
+  navigator.clipboard?.writeText(b.previousElementSibling.textContent);
+  b.textContent = 'Đã chép ✓';
+  setTimeout(() => (b.textContent = 'Chép'), 2000);
+}));
 
 // ---------- Tab ----------
 function showTab(id) {
@@ -226,6 +231,7 @@ function connect() {
       const changed = theme && theme.id !== msg.theme.id;
       theme = msg.theme; rules = msg.rules; gifts = msg.gifts || []; presetGifts = msg.presetGifts || [];
       document.title = `${theme.name} · TikTok Live Kit`;
+      document.querySelectorAll('[data-starter]').forEach((el) => (el.hidden = theme.id !== 'template')); // khung trống: gợi ý làm theme riêng
       $('themeSel').innerHTML = msg.themes.map((t) => `<option value="${esc(t.id)}"${t.id === theme.id ? ' selected' : ''}>${esc(t.name)}</option>`).join('');
       $('provider').value = msg.config.provider;
       if (!$('user').value) $('user').value = msg.config.tiktokUsername;

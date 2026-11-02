@@ -10,13 +10,20 @@ Kit không kèm theme làm sẵn, chỉ có khung trống `themes/template` đ�
 
 | Tài liệu | Nội dung |
 |---|---|
+| [docs/IDEA.vi.md](docs/IDEA.vi.md) | Ý tưởng theme của bạn: các câu cần trả lời trước khi làm (không gian, người xem, quà, chat, giọng đọc, asset) |
 | [docs/THEME.vi.md](docs/THEME.vi.md) | Làm theme: cấu trúc, `scene.json`, `theme.json`, hành động, giọng đọc, `theme.js` |
 | [docs/ASSETS-GUIDE.vi.md](docs/ASSETS-GUIDE.vi.md) | Làm đẹp do đâu: ảnh nền, tờ nhân vật, hiệu ứng, âm thanh bằng AI tạo ảnh, công cụ xử lý |
 | [docs/GO-LIVE.vi.md](docs/GO-LIVE.vi.md) | Lên live: LIVE Studio / OBS, TikFinity, kiểm tra trước giờ phát, lỗi hay gặp |
 | [AGENTS.md](AGENTS.md) | Cho AI lập trình (Claude Code, Codex, Gemini…): bản đồ repo, lệnh, quy tắc (tiếng Anh, AI vẫn trả lời bạn bằng tiếng Việt) |
 | [CHANGELOG.vi.md](CHANGELOG.vi.md) | Các thay đổi |
 
-Làm bằng AI: mở repo trong Claude Code / Codex / Cursor rồi nói *"làm cho tôi theme <chủ đề>"*; AI đọc `AGENTS.md` và hỏi bạn về asset.
+## Làm theme của bạn
+
+1. **Ý tưởng trước.** Đọc [docs/IDEA.vi.md](docs/IDEA.vi.md): không gian là gì, người xem thành ai, quà nào làm gì, lệnh chat, câu đọc, đã có asset nào. Để trống cũng được, AI sẽ hỏi.
+2. **Làm cùng AI.** Mở thư mục kit trong Claude Code / Codex / Cursor rồi nói: *"Đọc AGENTS.md rồi hỏi tôi ý tưởng theo docs/IDEA.vi.md để làm một theme mới."* AI hỏi vài câu một lần, tóm thành bản kế hoạch một trang, bạn đồng ý rồi mới bắt tay làm.
+3. **Thử.** Chọn theme mới trên bảng điều khiển, thử ở tab **Thử nghiệm**, rồi lên live ([docs/GO-LIVE.vi.md](docs/GO-LIVE.vi.md)).
+
+Khi kit đang chạy khung trống, bảng điều khiển hiện sẵn các bước này kèm câu lệnh để chép.
 
 ### Để theme ở repo riêng
 

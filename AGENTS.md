@@ -15,7 +15,7 @@ TikTok Live Kit: a Node server that receives TikTok LIVE events (gifts, likes, c
 | `public/sdk/` | Overlay SDK: `kit.js` (runs JSON actions), `scene.js` (crowd, camera), `fx.js`, `audio.js`, `hud.js`, `assets.js`, `geometry.js`, `live-sdk.js` |
 | `themes/template/` | Blank template to copy for a new theme |
 | `tools/` | Asset processing: character sheet cutter, black → transparent |
-| `docs/` | `THEME.md` (full reference), `ASSETS-GUIDE.md` (making assets), `GO-LIVE.md` (going live) |
+| `docs/` | `IDEA.md` (theme idea questionnaire), `THEME.md` (full reference), `ASSETS-GUIDE.md` (making assets), `GO-LIVE.md` (going live) |
 | `test/` | `node --test` |
 
 ## Commands
@@ -33,8 +33,11 @@ pnpm assets:alpha <in.jpg> <out.png> --max 1024                                 
 
 ## Making a theme
 
+The kit ships no ready-made theme; `themes/template` is only a blank skeleton. When the user asks for a new theme (or just "help me start"):
+
+0. **Interview first, code later.** Walk through `docs/IDEA.md` (`docs/IDEA.vi.md` in Vietnamese) a few questions at a time: space and mood, who viewers become, what each gift level does, chat commands and draws, titles and goals, voice lines, assets they have, how they go live. Offer 2–3 concrete options when they're unsure. Then write the one-page plan from the end of `IDEA.md` and **wait for their OK** before creating files. If they already filled `IDEA.md`, read it and only ask what's missing.
 1. Copy `themes/template` → `themes/<theme-name>` (English, kebab-case). Set `"theme": "<theme-name>"` in `config.json` or pick it in the control panel.
-2. **Ask the user about assets first** (background, characters, sounds). If they have none, point them to `docs/ASSETS-GUIDE.md` and write prompts from its templates. Don't draw assets in code as a substitute for real images unless the user wants that.
+2. **Assets** (from the interview): if they have none, point them to `docs/ASSETS-GUIDE.md` and write prompts from its templates. Don't draw assets in code as a substitute for real images unless the user wants that.
 3. Background → `scene.json`: open `/overlay?scene`, tune `horizonY`, `person`, `floor`, `aisle`, `seats`, `points` until people stand on the floor.
 4. `theme.json`: `actions` (step lists), `rules` (gift tiers, chat commands), `voice`, `characters`, `hud`, `colors`, `sounds`; optional `draws`, `periodic`, `prompts`, `reactions`, `titles`, `goals`. Every key is in `docs/THEME.md`.
 5. Only write `theme.js` when JSON can't do it (custom action via `Kit.action`, custom HUD replacing `Kit.hud`).
