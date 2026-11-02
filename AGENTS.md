@@ -42,6 +42,16 @@ pnpm assets:alpha <in.jpg> <out.png> --max 1024                                 
 
 A theme can live in its own repo: `KIT_THEMES_DIR`, `KIT_DATA_DIR`, `KIT_CONFIG` (see README).
 
+## Going live
+
+When the user wants to go live or set up streaming, **ask before giving steps**:
+
+1. Which app puts the picture on air: LIVE Studio capturing the overlay window (A), OBS → Virtual Camera → LIVE Studio (B, smoothest), or OBS with a stream key (C)?
+2. What the account allows: can it already use LIVE Studio, or does it have a stream key? If Studio says no access, they must sort that out on TikTok first.
+3. Live data: TikFinity Desktop or the direct connection?
+
+Then walk them through only that route in `docs/GO-LIVE.md` (`docs/GO-LIVE.vi.md` in Vietnamese). `run.bat` must run for the whole live in every route.
+
 ## Rules
 
 - **Themes don't modify the core.** Missing features go in `theme.js`; only change `src/` or `public/sdk/` when the user wants to upgrade the kit for every theme, and run `pnpm test` afterwards.

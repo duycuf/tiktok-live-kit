@@ -13,12 +13,24 @@ TikTok LIVE ──(gifts, likes, chat)──> TikFinity Desktop ──ws://127.0
                         LIVE Studio / OBS <── overlay http://localhost:3939/overlay
 ```
 
+## 0. Pick a setup
+
+Answer two questions first: **which app will put the picture on air**, and **what does the account allow** (LIVE Studio access, or a stream key from TikTok)?
+
+| Setup | Needs | Each live | Notes |
+|---|---|---|---|
+| **A. LIVE Studio, window capture** | LIVE Studio access | `run.bat` + `overlay.bat` | Simplest; Studio captures the overlay's Chrome window |
+| **B. OBS → Virtual Camera → LIVE Studio** | LIVE Studio access, OBS | `run.bat` + OBS | **Smoothest**: OBS renders the overlay itself, the source is saved in the scene, no `overlay.bat` |
+| **C. OBS with a stream key** | A stream key for the account, OBS | `run.bat` + OBS | Streams straight from OBS, no Studio |
+
+If LIVE Studio says the account has no access, the account isn't eligible to stream from a computer yet: sort that out on TikTok first. Whatever the setup, `run.bat` must run during the whole live: it serves the overlay, the voice and the live data.
+
 ## 1. Requirements
 
 | Software | Notes |
 |---|---|
 | Node.js 20+ | https://nodejs.org (`run.bat` tells you if it's missing) |
-| Chrome | Opens the overlay window for LIVE Studio to capture (Studio lists Chrome windows) |
+| Chrome | Setup A: opens the overlay window for LIVE Studio to capture (Studio lists Chrome windows) |
 | TikTok LIVE Studio or OBS | Streaming app |
 | TikFinity **Desktop** (recommended) | The installed app (the web version does not expose port 21213). Without it, use the direct connection |
 
@@ -29,17 +41,20 @@ TikTok LIVE ──(gifts, likes, chat)──> TikFinity Desktop ──ws://127.0
 
 ## 3. Put the overlay into the streaming app
 
-**TikTok LIVE Studio**
+**A. TikTok LIVE Studio (window capture)**
 1. Run `overlay.bat`: opens the overlay as its own vertical Chrome window that **plays sound on its own** and **doesn't freeze when covered by other windows**.
 2. Studio: vertical layout → **Add source → Window capture → chrome.exe** (the title is the theme name).
 3. Select the source → set it to **fill** (not stretch) to cover the frame. The live frame is taller than 9:16, so about 100px is cropped on each side: keep text and panels inside the safe zone (`/overlay?safe`).
 4. Don't minimize the overlay window; having it behind other windows is fine.
 5. Sound: enable desktop audio capture in Studio's audio settings.
 
-**OBS**
-1. Settings → Video: 1080 × 1920, 30 FPS.
-2. Sources → Browser: URL `http://localhost:3939/overlay`, 1080 × 1920, tick *Control audio via OBS*. Right-click → Interact, click the overlay once to enable sound.
-3. Send to LIVE Studio with *Start Virtual Camera* (Studio picks the Camera source → OBS Virtual Camera), or stream directly with a stream key if you have one.
+**B and C. OBS** (set up once, OBS remembers it)
+1. Settings → Video: base and output resolution 1080 × 1920, 30 FPS.
+2. Sources → **Browser**: URL `http://localhost:3939/overlay`, width 1080, height 1920, tick *Control audio via OBS*. Right-click → Interact, click the overlay once to enable sound.
+3. **B, into LIVE Studio**: OBS → *Start Virtual Camera*. The virtual camera carries picture only, so set the browser source's sound to play out loud: Edit → Advanced Audio Properties → Audio Monitoring → **Monitor and Output**. In Studio: vertical layout → **Add source → Camera → OBS Virtual Camera**, fill the frame, and enable desktop audio capture.
+4. **C, with a stream key**: Settings → Stream → Custom, paste the server URL and stream key from TikTok → *Start Streaming*. Sound goes through OBS directly.
+
+Next time: run `run.bat`, open OBS (start the virtual camera for B). If the overlay is blank, right-click the source → Refresh.
 
 Stream at 30 FPS: the overlay already caps its frame rate (`scene.json` `"fps": 30`), leaving the CPU to the streaming app's encoder.
 
@@ -75,4 +90,6 @@ A green status dot and a ticking "last event … ago" line mean data is flowing.
 | TikFinity says `user_not_found` | Enter the @handle, not the display name |
 | Voice is slow or patchy | Microsoft's TTS service is flaky: fixed lines are pre-rendered; set `"voice": { "fallback": "local" }` in the theme to use Windows' built-in Vietnamese voice when it fails outright |
 | Text and panels cropped on phones | Keep them in the safe zone (`?safe`), at least 100px from the edges |
-| Closed the black window by mistake | Run `run.bat` again, click Connect again, re-select the source in Studio if the picture is gone |
+| Closed the black window by mistake | Run `run.bat` again, click Connect again, re-select the source in Studio if the picture is gone (OBS: refresh the browser source) |
+| B: Studio shows the picture but no sound | The virtual camera has no sound: set the OBS browser source to *Monitor and Output* and enable desktop audio in Studio |
+| B: "OBS Virtual Camera" isn't in Studio's camera list | Start the virtual camera in OBS before opening Studio, or restart Studio |
