@@ -20,6 +20,8 @@
 //   "pose" / "play" dùng tên trong "clips"; thiếu thì tìm clip có tên trùng (không phân biệt hoa thường).
 //   "animations": { "bow": { "clip": "Bow", "ms": 1600 } } đặt thời lượng một lần chạy.
 // Chưa có mô hình thì vẽ người giữ chỗ (thân + đầu) và tự làm động tác cúi, nhún, nhảy.
+// Sân khấu dựng sẵn (đèn quét, laser, màn hình video) và hiệu ứng 3D: scene.json "stage", bước "stage" / "fx3d" (xem sdk/stage3d.js).
+// Nền xanh để ghép OBS: cài đặt "Nền xanh" trên bảng điều khiển hoặc ?chroma; ẩn sàn, cảnh dựng sẵn, sương mù.
 
 (function () {
   const K = window.Kit;
@@ -27,6 +29,7 @@
 
   let T = null, loaderGLTF = null, cloneSkinned = null;
   let renderer = null, scene3 = null, camera = null, composer = null, raycaster = null, floorPlane = null;
+  let stage = null, backdrop = null, worldObj = null, floorObj = null, fogObj = null, chromaOn = false; // sân khấu dựng sẵn; nền, cảnh, sàn, sương (ẩn khi bật nền xanh)
   let ready = false, theme = { characters: [], animations: {}, npcs: [], colors: {} }, settings = {}, cfg = {};
   let canvas = null, ctx = null;
   const persons = new Map(), npcs = new Map(), fillers = new Map();
@@ -80,9 +83,9 @@
 
     // nền, sương mù, ánh sáng
     const bg = cfg.background || '#14121c';
-    if (/\.(png|jpe?g|webp)$/i.test(bg)) new T.TextureLoader().load(bg, (tex) => { tex.colorSpace = T.SRGBColorSpace; scene3.background = tex; });
-    else scene3.background = new T.Color(bg);
-    if (cfg.fog) scene3.fog = new T.Fog(cfg.fog.color || bg, cfg.fog.near ?? 18, cfg.fog.far ?? 45);
+    backdrop = new T.Color(/^#/.test(bg) ? bg : '#000000');
+    if (/\.(png|jpe?g|webp)$/i.test(bg)) new T.TextureLoader().load(bg, (tex) => { tex.colorSpace = T.SRGBColorSpace; backdrop = tex; applyChroma(); });
+    if (cfg.fog) fogObj = new T.Fog(cfg.fog.color || bg, cfg.fog.near ?? 18, cfg.fog.far ?? 45);
     const L = cfg.lights || {};
     scene3.add(new T.HemisphereLight(0xffffff, 0x404050, L.ambient ?? 0.8));
     const dl = new T.DirectionalLight(sun.color || 0xffffff, sun.intensity ?? 1.6);
@@ -100,14 +103,14 @@
       loaderGLTF.load(cfg.world, (g) => {
         g.scene.scale.setScalar(cfg.worldScale ?? 1);
         g.scene.traverse((o) => { if (o.isMesh) { o.receiveShadow = Boolean(sun.shadows); o.castShadow = Boolean(sun.shadows); } });
-        scene3.add(g.scene);
+        worldObj = g.scene; scene3.add(g.scene); applyChroma();
       }, undefined, () => console.warn(`[Kit.scene3d] chưa thấy ${cfg.world}`));
     } else {
       const w = fl.x[1] - fl.x[0] + 16, d = fl.z[1] - fl.z[0] + 24;
       const m = new T.Mesh(new T.PlaneGeometry(w, d), new T.MeshStandardMaterial({ color: fl.color || '#2a2633', roughness: 0.9 }));
       m.rotation.x = -Math.PI / 2; m.position.set((fl.x[0] + fl.x[1]) / 2, 0, (fl.z[0] + fl.z[1]) / 2 - 4);
       m.receiveShadow = Boolean(sun.shadows);
-      scene3.add(m);
+      floorObj = m; scene3.add(m);
     }
 
     // hậu kỳ: phát sáng (bloom)
@@ -121,6 +124,11 @@
       composer.addPass(new UnrealBloomPass(new T.Vector2(W, H), cfg.bloom.strength ?? 0.6, cfg.bloom.radius ?? 0.4, cfg.bloom.threshold ?? 0.85));
       composer.addPass(new OutputPass());
     }
+
+    // sân khấu dựng sẵn: đèn quét, laser, màn hình (scene.json "stage") và hiệu ứng 3D
+    const { createStage } = await import('/sdk/stage3d.js');
+    stage = createStage({ T, scene: scene3, cfg, worldPoint, beat: K.fx.beat });
+    applyChroma();
 
     // nhân vật: nạp mô hình một lần, mỗi người là một bản sao
     chars = (theme.characters || []).map((ch) => ({ ...ch, ready: false }));
@@ -140,7 +148,18 @@
     if (pending.top) seatTop(pending.top);
   }
 
-  function configure(s) { settings = s || {}; setAmbient(settings.ambientFx !== false); }
+  function configure(s) { settings = s || {}; setAmbient(settings.ambientFx !== false); applyChroma(); }
+
+  // Nền xanh (chroma key) để ghép trong OBS: chỉ còn người, đèn, hiệu ứng trên nền xanh trơn
+  function applyChroma() {
+    if (!scene3) return;
+    const on = chromaOn = settings.chroma === true || new URLSearchParams(location.search).has('chroma');
+    stage?.setVisible(!on); // tia đèn, laser, màn hình cộng màu lên nền xanh làm OBS tách nền sai
+    scene3.background = on ? new T.Color(cfg.chroma || '#00ff00') : backdrop;
+    scene3.fog = on ? null : fogObj;
+    if (worldObj) worldObj.visible = !on;
+    if (floorObj) floorObj.visible = !on;
+  }
 
   // Hiệu ứng liên tục của scene.json "emitters": vẽ bằng Kit.fx trên lớp 2D, vị trí chiếu lại mỗi khung hình
   function setAmbient(on) {
@@ -518,7 +537,8 @@
     const tick = Math.floor(t / 16) % 4 === 0;
     for (const p of all) sync(p, t, dt, animatedIds.has(p.id) || p.task || tick);
     for (const e of emitters) { const at = point(e.at) || { x: W / 2, y: H / 2 }; e.o.x = at.x; e.o.y = at.y; }
-    if (composer) composer.render(); else renderer.render(scene3, camera);
+    stage?.update(t, dt);
+    if (composer && !chromaOn) composer.render(); else renderer.render(scene3, camera); // nền xanh: bỏ phát sáng để giữ đúng màu nền
 
     // lớp 2D: hiệu ứng, vầng sáng, nhãn tên, bong bóng
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -569,6 +589,14 @@
     person: (id) => persons.get(id), npc: (id) => npcs.get(id), people: () => [...persons.values()].filter((p) => !p.leaving),
     extras: () => [...fillers.values()],
     height, P, get layout() { return { slots }; }, get seats() { return seats; }, get scene() { return cfg; }, get chars() { return chars; },
+    /** Bước { "stage": "party" | "calm" | "strobe" }. */
+    stage: (step) => stage?.command(step),
+    /** Bước { "fx3d": "fireworks" | "confetti" | "beam" | "ring", "at": "person" | tên điểm }. */
+    fx3d(step, person) {
+      if (!stage) return;
+      const at = step.at && step.at !== 'person' ? worldPoint(step.at) : person ? { x: person.wx, y: 0, z: person.wz } : worldPoint('stage');
+      stage.fx(step, at || { x: 0, y: 0, z: 0 });
+    },
     get three() { return { THREE: T, scene: scene3, camera, renderer }; }, // cho theme.js tự thêm vật thể 3D
     set debug(v) { debugOverlay = v; },
   };

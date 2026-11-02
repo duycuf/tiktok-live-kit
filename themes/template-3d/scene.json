@@ -106,6 +106,94 @@
     "threshold": 0.85
   },
   "emitters": [],
+  "stage": {
+    "lights": [
+      {
+        "at": [
+          -4,
+          6.5,
+          -3
+        ],
+        "color": "#ff3cac",
+        "target": [
+          -1.5,
+          2
+        ],
+        "sweep": 2.5,
+        "speed": 0.55
+      },
+      {
+        "at": [
+          -1.5,
+          7,
+          -3.5
+        ],
+        "color": "#5ab4ff",
+        "target": [
+          -0.5,
+          3
+        ],
+        "sweep": 2,
+        "speed": 0.7
+      },
+      {
+        "at": [
+          1.5,
+          7,
+          -3.5
+        ],
+        "color": "#ffd25a",
+        "target": [
+          0.5,
+          3
+        ],
+        "sweep": 2,
+        "speed": 0.65
+      },
+      {
+        "at": [
+          4,
+          6.5,
+          -3
+        ],
+        "color": "#5affb4",
+        "target": [
+          1.5,
+          2
+        ],
+        "sweep": 2.5,
+        "speed": 0.5
+      }
+    ],
+    "lasers": {
+      "from": [
+        0,
+        5.5,
+        -4.5
+      ],
+      "count": 8,
+      "colors": [
+        "#00ffd5",
+        "#ff2bd6"
+      ],
+      "spread": 70,
+      "speed": 0.5
+    },
+    "screens": [
+      {
+        "at": [
+          0,
+          4.2,
+          -5.5
+        ],
+        "size": [
+          5.6,
+          3.15
+        ],
+        "folder": "video"
+      }
+    ]
+  },
   "maxAnimated": 120,
   "maxTags": 8,
   "fill": {

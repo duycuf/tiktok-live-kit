@@ -209,6 +209,36 @@ Models: CC0 packs such as Quaternius, Kenney, KayKit, or Mixamo animations. Pref
 
 In `theme.js`, `Kit.scene.three` gives `{ THREE, scene, camera, renderer }` to add your own 3D objects.
 
+### Stage kit: moving lights, lasers, video screen
+
+```jsonc
+// scene.json
+"stage": {
+  "lights": [{ "at": [-4, 6.5, -3], "color": "#ff3cac", "target": [-1.5, 2], "sweep": 2.5, "speed": 0.55, "angle": 14, "intensity": 40, "beam": 0.28 }],
+  "lasers": { "from": [0, 5.5, -4.5], "count": 8, "colors": ["#00ffd5", "#ff2bd6"], "spread": 70, "speed": 0.5, "width": 0.035, "always": false },
+  "screens": [{ "at": [0, 4.2, -5.5], "size": [5.6, 3.15], "folder": "video" }]   // or "video": "assets/x.mp4", "videos": [...], "image": "..."
+}
+```
+
+- **Moving lights**: a real spotlight on the floor plus a visible beam, sweeping around `target`. They pulse with the music when `Kit.fx.beat.bpm` is set.
+- **Lasers**: a fan of thin beams, shown during `party` (or always with `"always": true`).
+- **Screens**: muted video in a loop; `"folder": "video"` plays every `.mp4` / `.webm` dropped into `assets/video/`, one after another (like a DJ screen).
+
+Steps for actions (2D themes ignore `stage` and turn `fx3d` into the closest 2D effect, so one theme.json works in both):
+
+| Step | Effect |
+|---|---|
+| `{ "stage": "party", "duration": 7000 }` | lights brighter and faster, lasers on |
+| `{ "stage": "calm" }` / `{ "stage": "strobe", "duration": 1200 }` | back to normal / lights flash |
+| `{ "fx3d": "fireworks", "at": "stage", "bursts": 5 }` | 3D firework bursts above a point |
+| `{ "fx3d": "confetti", "count": 300 }` | confetti falling over the whole crowd |
+| `{ "fx3d": "beam", "at": "person", "color": "#ffd27a" }` | light column on the gifter |
+| `{ "fx3d": "ring", "at": "person" }` | glowing ring spreading on the floor |
+
+### Green screen for OBS
+
+Turn on **Green screen** (*Nền xanh để ghép trong OBS*) in the control panel's theme settings, or open the overlay with `?chroma`. The background becomes pure `#00ff00` (`scene.json` `"chroma"` to change it); in 3D the floor, world model, fog, glow, beams, lasers and screens are hidden so only people, tags and effects remain. In OBS add a **Chroma Key** filter to the Browser source. Works for 2D themes too.
+
 ## theme.js: custom parts
 
 ```js

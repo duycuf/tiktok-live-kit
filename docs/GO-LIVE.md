@@ -56,6 +56,8 @@ If LIVE Studio says the account has no access, the account isn't eligible to str
 
 Next time: run `run.bat`, open OBS (start the virtual camera for B). If the overlay is blank, right-click the source → Refresh.
 
+To put the characters over your own camera or video: turn on **Green screen** (*Nền xanh để ghép trong OBS*) in the control panel's theme settings, then add a **Chroma Key** filter to the Browser source.
+
 Stream at 30 FPS: the overlay already caps its frame rate (`scene.json` `"fps": 30`), leaving the CPU to the streaming app's encoder.
 
 ## 4. Connect live data (gifts, likes, chat)

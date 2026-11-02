@@ -56,6 +56,8 @@ LIVE Studio báo tài khoản không có quyền truy cập thì tài khoản ch
 
 Lần sau: chạy `run.bat`, mở OBS (cách B thì bật lại Virtual Camera). Overlay trắng thì chuột phải vào nguồn → Refresh.
 
+Muốn đặt nhân vật lên camera hay video của mình: bật **Nền xanh để ghép trong OBS** trong phần cài đặt theme ở bảng điều khiển, rồi thêm bộ lọc **Chroma Key** cho nguồn Browser.
+
 Nên đặt FPS phát 30: overlay đã giới hạn số hình vẽ (`scene.json` `"fps": 30`), dành máy cho phần mềm phát nén video.
 
 ## 4. Nối dữ liệu live (quà, tim, chat)

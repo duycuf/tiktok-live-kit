@@ -525,7 +525,10 @@
   }
 
   // ---------- Nền ----------
+  const chromaParam = new URLSearchParams(location.search).has('chroma');
   function drawBackground(t) {
+    // nền xanh để ghép trong OBS (cài đặt "chroma" hoặc ?chroma): bỏ ảnh nền, đèn lung linh, tia nắng
+    if (settings.chroma === true || chromaParam) { ctx.fillStyle = theme.scene?.chroma || '#00ff00'; ctx.fillRect(0, 0, W, H); return; }
     const d = bgVideo && bgVideo.ready ? bgVideo : bgImage && bgImage.ready ? bgImage : null;
     if (d) {
       const s = Math.max(W / d.w, H / d.h);

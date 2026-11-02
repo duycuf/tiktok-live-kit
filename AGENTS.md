@@ -12,7 +12,7 @@ TikTok Live Kit: a Node server that receives TikTok LIVE events (gifts, likes, c
 | `src/core/` | Event pipeline: normalize → streaks (combos) → rules → engine → session; `voice.js`, `tts.js`, `draws.js` |
 | `src/providers/` | Sources: TikFinity, direct connection, demo, manager (reconnect) |
 | `public/control/` | Control panel (`/`, Vietnamese UI) |
-| `public/sdk/` | Overlay SDK: `kit.js` (runs JSON actions), `scene.js` (2D crowd, camera), `scene3d.js` (same API in Three.js, `"renderer": "3d"`), `fx.js`, `audio.js`, `hud.js`, `assets.js`, `geometry.js`, `live-sdk.js` |
+| `public/sdk/` | Overlay SDK: `kit.js` (runs JSON actions), `scene.js` (2D crowd, camera), `scene3d.js` (same API in Three.js, `"renderer": "3d"`), `stage3d.js` (3D moving lights, lasers, video screens, `fx3d` effects), `fx.js`, `audio.js`, `hud.js`, `assets.js`, `geometry.js`, `live-sdk.js` |
 | `themes/template/`, `themes/template-3d/` | Blank 2D / 3D templates to copy for a new theme |
 | `tools/` | Asset processing: character sheet cutter, black → transparent |
 | `docs/` | `IDEA.md` (theme idea questionnaire), `THEME.md` (full reference), `ASSETS-GUIDE.md` (making assets), `GO-LIVE.md` (going live) |

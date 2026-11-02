@@ -13,6 +13,8 @@
 //   { "fx": "emit", "preset": "smoke", "at": "censerMouth", "count": 8 }   hiệu ứng (xem Kit.fx)
 //   { "fx": "rain" | "halo" | "rays" | "pillar" | "text" | "fly" | "sprite" | "fireworks" | "flash" | "shake", ... }
 //   { "spotlight": true }  { "camera": "person", "zoom": 1.6 }  { "sound": "chuong" }  { "aura": 1 }  { "boost": 1.3 }
+//   { "fx3d": "fireworks" | "confetti" | "beam" | "ring" }   hiệu ứng 3D (cảnh 2D tự đổi sang hiệu ứng 2D tương ứng)
+//   { "stage": "party", "duration": 6000 } | { "stage": "calm" } | { "stage": "strobe" }   sân khấu 3D: đèn quét, laser (cảnh 2D bỏ qua)
 //   { "say": "Cảm ơn {ten}!" }          bong bóng chữ trên đầu
 //   { "crowd": [ ...bước... ] }         cả đám đông cùng làm
 //   { "npc": "su-tru-tri", "steps": [ ...bước... ] }
@@ -61,7 +63,11 @@
         case 'flash': K.fx.flash(step); break;
         case 'shake': K.fx.shake(step); break;
       }
-    } else if (step.spotlight && person) K.fx.spotlight(() => K.scene.P.head(person), { color: step.color, duration: step.duration ?? 4000 });
+    } else if (step.fx3d) {
+      if (K.scene.fx3d) K.scene.fx3d(step, person, ev);
+      else fx3dIn2D(step, person, ev);
+    } else if (step.stage) K.scene.stage?.(step)
+    else if (step.spotlight && person) K.fx.spotlight(() => K.scene.P.head(person), { color: step.color, duration: step.duration ?? 4000 });
     else if (step.camera) K.scene.focus(step.camera === 'person' ? person : where(step.camera, person), step);
     else if (step.sound) K.audio.sfx(step.sound, step);
     else if (step.aura && person) P.aura(person, Number(step.aura) || 1);
@@ -71,6 +77,15 @@
     else if (step.crowd) for (const q of [...K.scene.people(), ...(K.scene.extras?.() || [])]) { if (q.task || q.tasks.length) continue; K.scene.P.wait(q, Math.random() * (step.stagger ?? 400)); run(step.crowd, q, ev); }
     else if (step.npc) { const n = K.scene.npc(step.npc); if (n) run(step.steps || [], n, ev); }
     else if (step.js) { const fn = custom[step.js]; if (fn) fn(person, ev, { theme, settings }); else console.warn(`[Kit] chưa có Kit.action('${step.js}')`); }
+  }
+
+  // Cảnh 2D gặp bước fx3d: dùng hiệu ứng 2D gần nhất để một theme chạy được cả hai kiểu
+  function fx3dIn2D(step, person, ev) {
+    const at = where(step.at || (person ? 'head' : 'center'), person);
+    if (step.fx3d === 'fireworks') K.fx.fireworks({ bursts: step.bursts ?? 4 });
+    else if (step.fx3d === 'confetti') K.fx.rain('confetti', { count: num(step.count ?? 120, ev, 300) });
+    else if (step.fx3d === 'beam') K.fx.pillar(at.x, person ? person.y : at.y, { height: person ? K.scene.height(person) * 6 : 600 });
+    else if (step.fx3d === 'ring') K.fx.halo(at.x, person ? person.y - K.scene.height(person) * 0.5 : at.y, {});
   }
 
   /** Chạy danh sách bước trên một người (hoặc không có người: chạy lần lượt theo thời gian). */

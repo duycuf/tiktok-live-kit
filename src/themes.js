@@ -28,6 +28,7 @@ const STANDARD_SETTINGS = [
   { id: 'sfxVolume', label: 'Âm lượng tiếng hiệu ứng (assets/sfx)', type: 'range', min: 0, max: 100, default: 60 },
   { id: 'ambientFx', label: 'Hiệu ứng môi trường (khói, hạt rơi, tia sáng)', type: 'toggle', default: true },
   { id: 'cameraFx', label: 'Camera zoom vào người tặng quà lớn', type: 'toggle', default: true },
+  { id: 'chroma', label: 'Nền xanh để ghép trong OBS (chroma key)', type: 'toggle', default: false },
   { id: 'periodicEnabled', label: 'Nội dung định kỳ khi chat vắng', type: 'toggle', default: true },
 ];
 

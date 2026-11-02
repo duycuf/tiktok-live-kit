@@ -4,6 +4,10 @@
 
 ## Chưa phát hành
 
+- Bộ sân khấu 3D (`sdk/stage3d.js`, `scene.json` `"stage"`): đèn quét có tia sáng, laser, màn hình phát video lặp (một thư mục thành danh sách phát như màn hình DJ); bước `{ "stage": "party" | "calm" | "strobe" }` và `{ "fx3d": "fireworks" | "confetti" | "beam" | "ring" }`, theme 2D tự đổi sang hiệu ứng 2D.
+- Nền xanh để ghép OBS: cài đặt **Nền xanh** mới hoặc `?chroma`, nền `#00ff00` chuẩn cho cả 2D và 3D.
+- Nút thả đám đông trên bảng điều khiển cho người vào đúng tốc độ của engine, bấm 150 / 400 là đủ người.
+
 - Cảnh 3D: `scene.json` `"renderer": "3d"` chạy cảnh bằng Three.js (`sdk/scene3d.js`), cùng giao diện với 2D: không gian GLB và nhân vật có khung xương với các clip động tác, chỗ đứng đám đông, lối giữa, ghế danh dự, camera bay tới người tặng, ánh sáng, phát sáng, người giữ chỗ khi chưa có mô hình. Thêm khung trống `themes/template-3d`. Three.js 0.186 phục vụ ở `/vendor/three/`.
 
 - Bảng điều khiển chia 5 tab (Live, Luật, Thử nghiệm, Thống kê, Hướng dẫn), khung xem trước overlay luôn ở bên phải: thư viện quà có ảnh (bấm để thêm luật), nút thử trên từng dòng luật, nút thử quà theo nhóm giá, thả 10 / 30 / 60 / 400 người, hướng dẫn lên live ngay trong bảng.

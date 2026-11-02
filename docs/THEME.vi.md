@@ -207,6 +207,36 @@ Mô hình: các bộ CC0 như Quaternius, Kenney, KayKit, hoặc động tác Mi
 
 Trong `theme.js`, `Kit.scene.three` cho `{ THREE, scene, camera, renderer }` để tự thêm vật thể 3D.
 
+### Bộ sân khấu: đèn quét, laser, màn hình video
+
+```jsonc
+// scene.json
+"stage": {
+  "lights": [{ "at": [-4, 6.5, -3], "color": "#ff3cac", "target": [-1.5, 2], "sweep": 2.5, "speed": 0.55, "angle": 14, "intensity": 40, "beam": 0.28 }],
+  "lasers": { "from": [0, 5.5, -4.5], "count": 8, "colors": ["#00ffd5", "#ff2bd6"], "spread": 70, "speed": 0.5, "width": 0.035, "always": false },
+  "screens": [{ "at": [0, 4.2, -5.5], "size": [5.6, 3.15], "folder": "video" }]   // hoặc "video": "assets/x.mp4", "videos": [...], "image": "..."
+}
+```
+
+- **Đèn quét**: đèn chiếu thật xuống sàn kèm tia sáng nhìn thấy, quét quanh `target`. Có `Kit.fx.beat.bpm` thì đèn nháy theo nhịp nhạc.
+- **Laser**: chùm tia mảnh xoè hình quạt, bật khi `party` (hoặc luôn bật với `"always": true`).
+- **Màn hình**: phát video tắt tiếng, lặp lại; `"folder": "video"` phát lần lượt mọi file `.mp4` / `.webm` thả vào `assets/video/` (như màn hình DJ).
+
+Bước hành động (theme 2D bỏ qua `stage` và đổi `fx3d` sang hiệu ứng 2D gần nhất, nên một theme.json chạy được cả hai kiểu):
+
+| Bước | Tác dụng |
+|---|---|
+| `{ "stage": "party", "duration": 7000 }` | đèn mạnh hơn, quét nhanh hơn, bật laser |
+| `{ "stage": "calm" }` / `{ "stage": "strobe", "duration": 1200 }` | về bình thường / đèn nháy chớp |
+| `{ "fx3d": "fireworks", "at": "stage", "bursts": 5 }` | pháo hoa 3D nổ phía trên một điểm |
+| `{ "fx3d": "confetti", "count": 300 }` | confetti rơi khắp đám đông |
+| `{ "fx3d": "beam", "at": "person", "color": "#ffd27a" }` | cột sáng chiếu xuống người tặng |
+| `{ "fx3d": "ring", "at": "person" }` | vòng sáng lan ra trên sàn |
+
+### Nền xanh để ghép trong OBS
+
+Bật **Nền xanh để ghép trong OBS** trong phần cài đặt theme ở bảng điều khiển, hoặc mở overlay với `?chroma`. Nền thành màu `#00ff00` chuẩn (đổi bằng `scene.json` `"chroma"`); ở cảnh 3D thì sàn, mô hình không gian, sương mù, phát sáng, tia đèn, laser và màn hình được ẩn, chỉ còn người, nhãn tên và hiệu ứng. Trong OBS thêm bộ lọc **Chroma Key** cho nguồn Browser. Theme 2D cũng dùng được.
+
 ## theme.js: phần riêng
 
 ```js

@@ -15,6 +15,10 @@
           "aura": 1
         },
         {
+          "fx3d": "ring",
+          "at": "person"
+        },
+        {
           "sound": "small"
         },
         {
@@ -50,6 +54,10 @@
           "sound": "medium"
         },
         {
+          "fx3d": "beam",
+          "at": "person"
+        },
+        {
           "play": "cheer",
           "times": 2
         },
@@ -78,14 +86,17 @@
           "sound": "big"
         },
         {
-          "fx": "fireworks",
-          "bursts": 5,
-          "fountains": 2
+          "stage": "party",
+          "duration": 7000
         },
         {
-          "fx": "rain",
-          "preset": "confetti",
-          "count": 120
+          "fx3d": "fireworks",
+          "at": "stage",
+          "bursts": 5
+        },
+        {
+          "fx3d": "confetti",
+          "count": 300
         },
         {
           "crowd": [

@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- 3D stage kit (`sdk/stage3d.js`, `scene.json` `"stage"`): moving lights with visible beams, lasers, looping video screens (a folder works like a DJ playlist); steps `{ "stage": "party" | "calm" | "strobe" }` and `{ "fx3d": "fireworks" | "confetti" | "beam" | "ring" }`, which 2D themes map to 2D effects.
+- Green screen for OBS: new **Green screen** setting or `?chroma`, pure `#00ff00` background in 2D and 3D.
+- Control panel crowd buttons let people in at the engine's join rate, so 150 / 400 really arrive.
+
 - 3D scenes: `scene.json` `"renderer": "3d"` runs the scene in Three.js (`sdk/scene3d.js`) with the same API as 2D: GLB world and rigged characters with animation clips, crowd slots, aisle, honour seats, camera that flies to the gifter, lights, bloom, placeholder people when models are missing. New blank `themes/template-3d`. Three.js 0.186 served at `/vendor/three/`.
 
 - Control panel in five tabs (Live, Rules, Test, Stats, Guide) with the overlay preview always on the right: gift library with images (click to add a rule), a preview button on every rule row, gift test buttons grouped by price, 10 / 30 / 60 / 400-person crowd bursts, built-in going-live guide.
