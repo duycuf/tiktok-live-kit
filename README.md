@@ -1,6 +1,11 @@
-# TikTok Live Kit
+<div align="right">
 
-**English** | [Tiếng Việt](README.vi.md)
+[![English](https://img.shields.io/badge/English-selected-1f6feb)](README.md)
+[![Tiếng Việt](https://img.shields.io/badge/Ti%E1%BA%BFng%20Vi%E1%BB%87t-%C4%91%E1%BB%8Dc%20b%E1%BA%A3n%20ti%E1%BA%BFng%20Vi%E1%BB%87t-da3633)](README.vi.md)
+
+</div>
+
+# TikTok Live Kit
 
 A shared framework for building **interactive games / overlays for TikTok LIVE**. When viewers join, comment, tap likes or send gifts, characters and effects on screen react.
 

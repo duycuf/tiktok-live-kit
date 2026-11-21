@@ -1,6 +1,11 @@
-# TikTok Live Kit
+<div align="right">
 
-[English](README.md) | **Tiếng Việt**
+[![English](https://img.shields.io/badge/English-read%20in%20English-1f6feb)](README.md)
+[![Tiếng Việt](https://img.shields.io/badge/Ti%E1%BA%BFng%20Vi%E1%BB%87t-%C4%91ang%20ch%E1%BB%8Dn-da3633)](README.vi.md)
+
+</div>
+
+# TikTok Live Kit
 
 Bộ khung chung để làm **game / overlay tương tác cho TikTok LIVE**. Người xem vào live, bình luận, thả tim, tặng quà thì nhân vật và hiệu ứng trên màn hình phản ứng theo.
 
