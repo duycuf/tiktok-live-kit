@@ -1,22 +1,22 @@
-// Live SDK cho theme: kết nối lõi, tự nối lại, co khung, phát sự kiện. Theme chỉ cần Live.on(...).
+// Live SDK for themes: connects to the core, reconnects automatically, scales the frame, emits events. A theme only needs Live.on(...).
 //
-//   Live.on('ready',    ({ theme, players, state }) => {})  // lúc nối (và nối lại): dựng lại đám đông có sẵn
+//   Live.on('ready',    ({ theme, players, state }) => {})  // on connect (and reconnect): rebuild the existing crowd
 //   Live.on('join',     (e) => {})   e.user = { id, name, avatar, title, coins, rank, isPlayer }
 //   Live.on('chat',     (e) => {})   e.text
 //   Live.on('like',     (e) => {})   e.count
 //   Live.on('gift',     (e) => {})   e.action, e.label, e.gift{name,image,coins}, e.count, e.total, e.big, e.combo
-//   Live.on('command',  (e) => {})   lệnh chat đã khớp luật: e.action
+//   Live.on('command',  (e) => {})   chat command that matched a rule: e.action
 //   Live.on('follow' | 'share' | 'title' | 'goal' | 'streamEnd', (e) => {})
 //   Live.on('state',    (s) => {})   s.viewers, s.totals, s.top, s.goals
-//   Live.on('reset',    () => {})    bảng điều khiển bấm "Phiên mới"
-//   Live.on('settings', (v) => {})   cài đặt riêng của theme (khai báo "settings" trong theme.json) vừa đổi
-//   Live.on('*',        (e) => {})   mọi sự kiện
+//   Live.on('reset',    () => {})    "Phiên mới" (New session) pressed in the control panel
+//   Live.on('settings', (v) => {})   the theme's own settings (declared under "settings" in theme.json) changed
+//   Live.on('*',        (e) => {})   every event
 //
-//   Live.stage(el)      co phần tử el (kích thước gốc theo theme) vừa cửa sổ, giữ tỉ lệ
-//   Live.sound(url, vol) phát âm thanh (tự giới hạn số tiếng cùng lúc)
-//   Live.img(url)       ảnh có cache, bỏ referrer để ảnh TikTok tải được
-//   Live.audio()        AudioContext dùng chung (null khi tắt tiếng); Live.muted = true ở khung xem trước (?mute)
-//   Live.settings       giá trị cài đặt hiện tại của theme
+//   Live.stage(el)      scale element el (native size per theme) to fit the window, keeping the aspect ratio
+//   Live.sound(url, vol) play a sound (caps the number of simultaneous sounds)
+//   Live.img(url)       cached image, sent without a referrer so TikTok images load
+//   Live.audio()        shared AudioContext (null when muted); Live.muted = true in the preview frame (?mute)
+//   Live.settings       the theme's current settings values
 
 (function () {
   const handlers = {};
@@ -33,7 +33,7 @@
     },
   };
 
-  // ---------- Kết nối ----------
+  // ---------- Connection ----------
   let retry = 500;
   function connect() {
     const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
@@ -64,7 +64,7 @@
     };
   }
 
-  // Báo mất kết nối (ẩn được bằng ?quiet)
+  // Connection-lost notice (hide with ?quiet)
   let bannerEl = null;
   function banner(show) {
     if (new URLSearchParams(location.search).has('quiet')) return;
@@ -94,7 +94,7 @@
     return fit;
   };
 
-  // ---------- Ảnh, âm thanh ----------
+  // ---------- Images, sound ----------
   const imgs = new Map();
   Live.img = function (url) {
     if (!url) return null;
@@ -116,7 +116,7 @@
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       ctx = new AC();
-      // trình duyệt thường chặn âm thanh tới khi có thao tác; OBS thì không chặn
+      // browsers usually block audio until a user interaction; OBS does not
       const unlock = () => ctx.state === 'suspended' && ctx.resume();
       addEventListener('pointerdown', unlock);
       addEventListener('keydown', unlock);

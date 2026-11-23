@@ -1,8 +1,8 @@
-// Giọng đọc tiếng Việt qua dịch vụ đọc của Microsoft Edge (msedge-tts, miễn phí, cần mạng).
-// Dịch vụ không chính thức, hay chập chờn: thử lại vài lần; theme bật voice.fallback = "local" thì lỗi hẳn
-// sẽ đọc bằng giọng tiếng Việt có sẵn của Windows (Microsoft An, nghe máy hơn nhưng không cần mạng).
-// Hàng đợi có giới hạn; câu quan trọng (priority) chen lên đầu, câu phụ (low) bị bỏ khi đang dồn.
-// Câu lặp lại (đọc quẻ...) lưu ở cacheDir: lần sau phát ngay, không chờ dịch vụ. warm() đọc sẵn ở chế độ nền.
+// Vietnamese text-to-speech via Microsoft Edge's read-aloud service (msedge-tts, free, needs internet).
+// The service is unofficial and flaky: retry a few times; if the theme sets voice.fallback = "local", a hard failure
+// falls back to Windows' built-in Vietnamese voice (Microsoft An, more robotic but works offline).
+// Bounded queue; important lines (priority) jump to the front, minor lines (low) are dropped when backed up.
+// Repeated lines (draw readings...) are cached in cacheDir: played instantly next time without waiting on the service. warm() pre-synthesizes in the background.
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -21,9 +21,9 @@ export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keep
   for (const f of fs.readdirSync(dir)) { try { fs.unlinkSync(path.join(dir, f)); } catch {} }
   if (cacheDir) fs.mkdirSync(cacheDir, { recursive: true });
   const queue = [];
-  const warmQ = []; // câu đọc sẵn, chỉ làm khi rảnh
+  const warmQ = []; // lines to pre-synthesize, processed only when idle
   let busy = false;
-  let speaking = false; // đang làm câu thật (không tính đọc sẵn ở nền)
+  let speaking = false; // working on a real line (background pre-synthesis doesn't count)
   let seq = 0;
   const cacheFile = (text, voice) => cacheDir && path.join(cacheDir, crypto.createHash('sha1').update(`${voice}|${text}`).digest('hex').slice(0, 20) + '.mp3');
   const pickVoice = (v) => (VOICES.includes(v) ? v : VOICES[0]);
@@ -39,8 +39,8 @@ export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keep
     const t = String(text || '').trim().slice(0, 400);
     if (!t) return false;
     const cf = opts.cache && cacheFile(t, pickVoice(opts.voice));
-    if (cf && fs.existsSync(cf)) { publish(fs.readFileSync(cf), 'mp3', t, opts.meta); return true; } // đã đọc sẵn: phát ngay
-    if (opts.low && (speaking || queue.length)) return false; // câu phụ (chào, đọc bình luận) không chen khi đang có câu chờ; đọc sẵn ở nền thì không tính
+    if (cf && fs.existsSync(cf)) { publish(fs.readFileSync(cf), 'mp3', t, opts.meta); return true; } // already pre-synthesized: play now
+    if (opts.low && (speaking || queue.length)) return false; // minor lines (greetings, chat read-outs) don't cut in while lines are waiting; background pre-synthesis doesn't count
     if (queue.length >= maxQueue) { onError?.('Hàng đợi giọng đọc đầy, bỏ qua 1 câu'); return false; }
     if (opts.priority) { const i = queue.findIndex((q) => !q.opts.priority); queue.splice(i < 0 ? queue.length : i, 0, { text: t, opts }); }
     else queue.push({ text: t, opts });
@@ -52,7 +52,7 @@ export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keep
     const tts = new MsEdgeTTS();
     try {
       await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-      // Dịch vụ hiện chỉ nhận tốc độ / cao độ mặc định (đổi là đóng kết nối, đã thử 11/2026), nên để nguyên mặc định.
+      // The service currently only accepts the default rate / pitch (changing them closes the connection, tested 11/2026), so keep the defaults.
       const { audioStream } = tts.toStream(escXml(text));
       const chunks = [];
       await new Promise((resolve, reject) => {
@@ -66,7 +66,7 @@ export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keep
     } finally { try { tts.close(); } catch {} }
   }
 
-  // Giọng tiếng Việt cài sẵn trong Windows (System.Speech), ra file WAV
+  // Vietnamese voice built into Windows (System.Speech), output to a WAV file
   function localSynth(text) {
     return new Promise((resolve, reject) => {
       const base = path.join(os.tmpdir(), `kit-tts-${process.pid}-${++seq}`);
@@ -82,7 +82,7 @@ export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keep
         `$s.Speak([IO.File]::ReadAllText(${psQuote(`${base}.txt`)}, [Text.Encoding]::UTF8))`,
         '$s.Dispose()',
       ].join('; ');
-      // PowerShell 7 (pwsh) thấy cả giọng OneCore như Microsoft An; Windows PowerShell 5 chỉ thấy giọng SAPI cũ
+      // PowerShell 7 (pwsh) also sees OneCore voices such as Microsoft An; Windows PowerShell 5 only sees the old SAPI voices
       execFile(PWSH, ['-NoProfile', '-NonInteractive', '-Command', ps], { timeout: 20000, windowsHide: true }, (err) => {
         try { fs.unlinkSync(`${base}.txt`); } catch {}
         if (err) return reject(err.code === 3 ? new Error('máy không có giọng tiếng Việt') : err);
@@ -91,7 +91,7 @@ export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keep
     });
   }
 
-  // Dịch vụ chặn tạm khi gửi dồn: thử tối đa 3 lần, giãn dần
+  // The service temporarily blocks bursts: up to 3 attempts with increasing delay
   async function pump() {
     if (busy || (!queue.length && !warmQ.length)) return;
     busy = true;
@@ -111,10 +111,10 @@ export function createTTS({ dir, cacheDir, onReady, onError, maxQueue = 12, keep
     else if (!audio && !opts.warm) onError?.(`Giọng đọc lỗi: ${lastErr?.message || lastErr}`);
     busy = false;
     speaking = false;
-    setTimeout(pump, opts.warm && !queue.length ? 1200 : 300); // đọc sẵn thì giãn ra cho dịch vụ khỏi chặn; có câu thật chờ thì làm ngay
+    setTimeout(pump, opts.warm && !queue.length ? 1200 : 300); // space out pre-synthesis so the service doesn't block; if a real line is waiting, do it now
   }
 
-  /** Đọc sẵn các câu (chưa có trong bộ nhớ) ở chế độ nền, để lúc cần phát ngay. */
+  /** Pre-synthesize lines (not yet cached) in the background so they play instantly when needed. */
   function warm(texts, voice) {
     if (!cacheDir) return 0;
     const v = pickVoice(voice);

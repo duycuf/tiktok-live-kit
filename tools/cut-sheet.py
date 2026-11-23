@@ -1,18 +1,18 @@
-"""Cắt tờ nhân vật dạng lưới (gen bằng AI, nền xanh lá) thành dải khung ngang cho Kit.
+"""Cut an AI-generated character grid sheet (green background) into a horizontal frame strip for the Kit.
 
-Chạy (ở thư mục kit, cần uv: https://docs.astral.sh/uv/):
+Run (in the kit folder, needs uv: https://docs.astral.sh/uv/):
     pnpm assets:cut themes/<id>/assets/raw/character.png themes/<id>/assets/chars/character.png --auto
-    (tức là: uv run --no-project --with pillow --with numpy python tools/cut-sheet.py ...)
-    tuỳ chọn: --cols 6 --rows 5 (mặc định đúng prompt master), --auto (AI xếp hàng không đều: tự dò từng dáng),
-              --scale 0.66 (thu nhỏ tờ ra), --preview đường/dẫn.png (ảnh soát, mặc định cạnh file ra)
+    (i.e.: uv run --no-project --with pillow --with numpy python tools/cut-sheet.py ...)
+    options: --cols 6 --rows 5 (defaults match the master prompt), --auto (uneven AI rows: detect each pose),
+             --scale 0.66 (shrink the sheet), --preview path/to.png (check image, defaults to next to the output file)
 
-Làm gì:
-  1. Tách nền: lấy màu nền ở viền ảnh (thường là xanh lá), xoá phần cùng màu, viền mềm, khử ánh xanh hắt lên áo.
-  2. Chia đều lưới cột x hàng (hoặc --auto: tìm khoảng trống giữa các hàng rồi giữa các dáng), mỗi ô giữ lại người,
-     bỏ số thứ tự, chữ, chấm lẻ.
-  3. Xếp các khung thành một hàng ngang theo thứ tự đọc (trái sang phải, trên xuống dưới), canh chân chung một đáy,
-     GIỮ NGUYÊN tỉ lệ giữa các khung (người quỳ thấp hơn người đứng) để code vẽ đúng cỡ.
-  4. Ghi thêm <tên>-preview.png có đánh số khung để soát.
+What it does:
+  1. Remove the background: take the background color from the image border (usually green), erase matching pixels, soften edges, remove green spill on clothing.
+  2. Split into an even cols x rows grid (or --auto: find gaps between rows, then between poses); each cell keeps the person,
+     dropping index numbers, text and stray dots.
+  3. Lay the frames out in one horizontal row in reading order (left to right, top to bottom), feet on a shared baseline,
+     KEEPING the relative scale between frames (a kneeling person is shorter than a standing one) so code draws them at the right size.
+  4. Also write <name>-preview.png with numbered frames for checking.
 """
 import argparse
 import json
@@ -27,21 +27,21 @@ def key_background(rgb):
     border = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]]).astype(np.float32)
     bg = np.median(border, axis=0)
     dist = np.sqrt(((rgb.astype(np.float32) - bg) ** 2).sum(axis=2))
-    lo, hi = 60.0, 140.0  # gần màu nền hơn lo: trong suốt; xa hơn hi: giữ nguyên; ở giữa: viền mềm
+    lo, hi = 60.0, 140.0  # closer to the background than lo: transparent; farther than hi: kept; in between: soft edge
     alpha = np.clip((dist - lo) / (hi - lo), 0, 1)
     out = rgb.astype(np.float32)
-    if bg[1] > bg[0] + 40 and bg[1] > bg[2] + 40:  # nền xanh lá: khử ánh xanh hắt lên người
+    if bg[1] > bg[0] + 40 and bg[1] > bg[2] + 40:  # green background: remove green spill on the person
         cap = np.maximum(out[..., 0], out[..., 2])
         out[..., 1] = np.minimum(out[..., 1], cap + 8)
     return out.astype(np.uint8), (alpha * 255).astype(np.uint8), bg
 
 
 def keep_figure(alpha):
-    """Giữ mảng lớn nhất (người) và các mảng đáng kể nằm sát nó; bỏ số thứ tự, chữ, chấm lẻ AI hay vẽ thêm."""
+    """Keep the largest blob (the person) and significant blobs right next to it; drop index numbers, text and stray dots that AI tends to add."""
     m = alpha > 40
     h, w = m.shape
     label = np.zeros((h, w), np.int32)
-    comps = []  # (diện tích, x0, y0, x1, y1)
+    comps = []  # (area, x0, y0, x1, y1)
     for sy, sx in zip(*np.nonzero(m)):
         if label[sy, sx]:
             continue
@@ -71,7 +71,7 @@ def keep_figure(alpha):
 
 
 def runs(counts, min_count, max_gap, min_len):
-    """Các đoạn liên tiếp có counts >= min_count, nối đoạn cách nhau < max_gap, bỏ đoạn ngắn hơn min_len."""
+    """Runs where counts >= min_count; merge runs less than max_gap apart, drop runs shorter than min_len."""
     on = np.where(counts >= min_count)[0]
     if not len(on):
         return []
@@ -86,8 +86,8 @@ def runs(counts, min_count, max_gap, min_len):
 
 
 def auto_regions(alpha):
-    """Cắt luân phiên ngang / dọc theo khoảng trống cho tới khi mỗi mảnh chỉ còn một dáng (XY-cut).
-    Trả về các vùng theo thứ tự đọc: từng hàng từ trên xuống, trong hàng từ trái sang phải."""
+    """Alternately cut horizontally / vertically along gaps until each piece holds a single pose (XY-cut).
+    Returns regions in reading order: rows from top to bottom, left to right within each row."""
     m = alpha > 40
     H, W = m.shape
     min_h, min_w = H // 40, W // 120
@@ -110,9 +110,9 @@ def auto_regions(alpha):
     regions = [r + (int(m[r[1]:r[3], r[0]:r[2]].sum()),) for r in split(0, 0, W, H, True, 0)]
     if not regions:
         return []
-    med = float(np.median([r[4] for r in regions]))  # bỏ mảnh quá nhỏ (dấu bản quyền, chấm lẻ)
+    med = float(np.median([r[4] for r in regions]))  # drop pieces that are too small (watermarks, stray dots)
     regions = [r[:4] for r in regions if r[4] >= 0.15 * med]
-    # gom thành hàng theo đáy (chân) gần nhau, rồi xếp trái sang phải
+    # group into rows by nearby bottoms (feet), then sort left to right
     regions.sort(key=lambda r: r[3])
     rows, cur = [], []
     for r in regions:
@@ -148,7 +148,7 @@ def main():
     im = Image.open(a.src).convert('RGBA')
     arr = np.array(im)
     rgb, alpha = arr[..., :3], arr[..., 3]
-    if alpha.min() == 255:  # ảnh không có nền trong suốt: tách theo màu nền
+    if alpha.min() == 255:  # image has no transparent background: key out by background color
         rgb, alpha, bg = key_background(rgb)
         print(f'Tách nền màu {tuple(int(v) for v in bg)}')
     H, W = alpha.shape

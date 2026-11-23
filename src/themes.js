@@ -1,11 +1,11 @@
-// Nạp theme từ thư mục themes/<id>/: theme.json (nội dung, luật, giọng đọc...) + scene.json (bố cục cảnh).
+// Load a theme from themes/<id>/: theme.json (content, rules, voice...) + scene.json (scene layout).
 
 import fs from 'node:fs';
 import path from 'node:path';
 
 const readJson = (f, fallback = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return fallback; } };
 
-/** Theme trong một hoặc nhiều thư mục (thư mục đầu ưu tiên khi trùng tên). Mỗi theme kèm `dir` chứa nó. */
+/** Themes in one or more folders (the first folder wins on duplicate names). Each theme carries the `dir` that contains it. */
 export function listThemes(dirs) {
   const seen = new Map();
   for (const dir of [].concat(dirs)) {
@@ -20,7 +20,7 @@ export function listThemes(dirs) {
   return [...seen.values()];
 }
 
-// Cài đặt kit thêm cho mọi theme (theme khai báo cùng id thì dùng bản của theme)
+// Kit settings added to every theme (if a theme declares the same id, the theme's version is used)
 const STANDARD_SETTINGS = [
   { id: 'voiceEnabled', label: 'Giọng đọc xướng tên', type: 'toggle', default: true },
   { id: 'voiceVolume', label: 'Âm lượng giọng đọc', type: 'range', min: 0, max: 100, default: 90 },
@@ -57,7 +57,7 @@ export function loadTheme(dirs, id) {
     prompts: t.prompts || {},
     prompts: t.prompts || {},
     draws: t.draws || {},
-    // phần chỉ overlay dùng, server chuyển nguyên
+    // overlay-only fields, passed through unchanged by the server
     characters: t.characters || [],
     animations: t.animations || {},
     npcs: t.npcs || [],
@@ -70,7 +70,7 @@ export function loadTheme(dirs, id) {
   };
 }
 
-/** Giá trị cài đặt của theme: mặc định trong theme.json, ghi đè bằng giá trị đã lưu (chỉ nhận khoá có khai báo). */
+/** Theme setting values: defaults from theme.json, overridden by saved values (only declared keys are accepted). */
 export function settingValues(theme, saved = {}) {
   const out = {};
   for (const f of theme.settings) {

@@ -1,6 +1,6 @@
-// Quà tặng liên tiếp (combo): TikTok gửi lại cùng một món nhiều lần với repeatCount tăng dần
-// (1, 2, 3...) rồi một lần chốt repeatEnd. Chỉ tính PHẦN TĂNG THÊM để không cộng trùng xu,
-// và vẫn phản hồi ngay từng nhịp combo thay vì chờ chốt.
+// Gift streaks (combos): TikTok resends the same gift several times with an increasing repeatCount
+// (1, 2, 3...) followed by a final repeatEnd. Only the INCREMENT is counted so coins aren't double-counted,
+// while still reacting to each combo beat right away instead of waiting for the end.
 
 export function createStreaks({ ttlMs = 60000 } = {}) {
   const last = new Map(); // key -> { count, at }

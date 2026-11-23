@@ -1,13 +1,13 @@
-// Kit.assets: nạp asset mọi định dạng về một kiểu "drawable" vẽ được lên canvas.
-//   ảnh: png / jpg / webp      GIF động: gif (giải mã từng khung, cần trình duyệt có ImageDecoder)
-//   video: mp4 / webm (webm có nền trong suốt)      Lottie: json (cần /vendor/lottie.min.js)
+// Kit.assets: loads assets of any format into a single "drawable" type that can be drawn on a canvas.
+//   image: png / jpg / webp      animated GIF: gif (decoded frame by frame, needs a browser with ImageDecoder)
+//   video: mp4 / webm (webm with a transparent background)      Lottie: json (needs /vendor/lottie.min.js)
 //
-//   const d = Kit.assets.get('assets/fx/halo.png');   // dùng ngay, vẽ khi đã sẵn sàng
-//   d.draw(ctx, x, y, w, h, { t, alpha, flip })       // t: thời gian (ms) để chạy GIF / Lottie
-//   const s = Kit.assets.sheet('assets/chars/ba.png', 5) // tờ khung hình chia đều theo chiều ngang
-//   s.drawFrame(ctx, i, cx, baseY, height, { flip })     // vẽ khung i, neo chân tại (cx, baseY)
+//   const d = Kit.assets.get('assets/fx/halo.png');   // use right away; draws once loaded
+//   d.draw(ctx, x, y, w, h, { t, alpha, flip })       // t: time (ms) for playing GIF / Lottie
+//   const s = Kit.assets.sheet('assets/chars/ba.png', 5) // sprite sheet split into equal horizontal frames
+//   s.drawFrame(ctx, i, cx, baseY, height, { flip })     // draw frame i, feet anchored at (cx, baseY)
 //
-// Asset thiếu: d.missing = true, người gọi tự vẽ hình giữ chỗ.
+// Missing asset: d.missing = true; the caller draws its own placeholder.
 
 (function () {
   const cache = new Map();
@@ -31,7 +31,7 @@
     return d;
   }
 
-  // GIF: giải mã thành danh sách khung + thời lượng; trình duyệt không hỗ trợ thì dùng khung đầu
+  // GIF: decode into a list of frames + durations; browsers without support use the first frame
   function gif(url) {
     const d = base(url);
     d.kind = 'gif';
@@ -134,7 +134,7 @@
     if (needSave) ctx.restore();
   }
 
-  /** Drawable cho một đường dẫn bất kỳ (tự nhận định dạng theo đuôi file). */
+  /** Drawable for any path (format detected from the file extension). */
   function get(url) {
     if (!url) { const d = base(''); d.missing = true; return d; }
     if (cache.has(url)) return cache.get(url);
@@ -144,9 +144,9 @@
     return d;
   }
 
-  // ---------- Tờ khung hình (nhân vật nhiều tư thế) ----------
-  // Chia đều theo chiều ngang thành `frames` ô; mỗi ô tự cắt sát phần có hình (bỏ khoảng trống)
-  // để nhân vật các tư thế đứng chân thẳng hàng và cao đều nhau.
+  // ---------- Sprite sheets (characters with several poses) ----------
+  // Split horizontally into `frames` equal cells; each cell is trimmed to its visible content (empty space removed)
+  // so that across poses the character's feet line up and the heights match.
   function sheet(url, frames = 1) {
     const key = `${url}#${frames}`;
     if (cache.has(key)) return cache.get(key);
@@ -171,7 +171,7 @@
       s.ready = true;
     };
     prepare();
-    // vẽ khung i, neo giữa chân tại (cx, baseY), cao `height` (theo chiều cao của ô đã cắt)
+    // draw frame i with the center of the feet anchored at (cx, baseY), `height` tall (measured on the trimmed cell)
     s.drawFrame = (ctx, i, cx, baseY, height, o = {}) => {
       if (!s.ready) return false;
       const b = s.boxes[Math.max(0, Math.min(frames - 1, i | 0))];
@@ -186,7 +186,7 @@
     return s;
   }
 
-  // Hộp bao phần có alpha > 16 trong vùng (x0, y0, w, h)
+  // Bounding box of the pixels with alpha > 16 within the region (x0, y0, w, h)
   function trim(data, W, x0, y0, w, h) {
     let minX = w, minY = h, maxX = -1, maxY = -1;
     for (let y = 0; y < h; y += 2) {

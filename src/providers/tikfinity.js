@@ -1,5 +1,5 @@
-// Nguồn TikFinity Desktop: TikFinity đăng nhập TikTok của chủ kênh và phát sự kiện ở WebSocket nội bộ.
-// Sự kiện là của phiên live mà TikFinity đang kết nối; tên kênh nhập ở bảng điều khiển chỉ để hiển thị.
+// TikFinity Desktop source: TikFinity signs in to the channel owner's TikTok and emits events on a local WebSocket.
+// Events come from whichever live TikFinity is connected to; the channel name entered in the control panel is for display only.
 
 import WebSocket from 'ws';
 import { normalizeTikFinity } from '../core/normalize.js';

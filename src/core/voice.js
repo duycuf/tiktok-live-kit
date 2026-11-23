@@ -1,13 +1,13 @@
-// Câu giọng đọc của theme: chọn mẫu câu theo sự kiện, điền {ten}, {qua}, {lan}, {xu}, {loi}...
-// {loi} = bình luận gần nhất của chính người đó (lời nguyện, lời chúc), không có thì lấy câu dự phòng.
+// Theme voice lines: pick a template per event and fill in {ten}, {qua}, {lan}, {xu}, {loi}...
+// {loi} = that person's own latest comment (a prayer, a wish); falls back to a backup phrase if there is none.
 
 const lowerFirst = (s) => (s ? s[0].toLocaleLowerCase('vi') + s.slice(1) : s);
 const pick = (list) => (Array.isArray(list) && list.length ? list[Math.floor(Math.random() * list.length)] : '');
 
-/** Tên đọc cho dễ nghe: bỏ ký tự lạ, gạch dưới, chấm, @. */
+/** Name made easy to read aloud: strip odd characters, underscores, dots, @. */
 export const spokenName = (s) => String(s || '').replace(/[_@.]+/g, ' ').replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 40) || 'bạn';
 
-// Bình luận đọc to lên live: bỏ qua đường link, từ tục, tin chỉ toàn biểu tượng / số
+// Comments read aloud on live: skip links, profanity, and messages that are only emoji / numbers
 const BLOCK = ['đm', 'dm', 'đmm', 'dmm', 'đcm', 'dcm', 'đéo', 'deo', 'địt', 'dit', 'lồn', 'lon', 'cặc', 'cac', 'buồi', 'đĩ', 'vcl', 'vl', 'vkl', 'clm', 'cmm', 'fuck', 'shit', 'đụ', 'du ma', 'đù má'];
 const plainWords = (s) => ` ${String(s).normalize('NFC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ')} `;
 export function readableChat(text, extraBlock = []) {
@@ -22,7 +22,7 @@ export function readableChat(text, extraBlock = []) {
 
 export function createVoice() {
   const lastWords = new Map(); // id -> { text, at }
-  const lastAt = new Map(); // loại câu -> lần đọc gần nhất (giãn cách theo voice.cooldown)
+  const lastAt = new Map(); // line type -> last time spoken (spaced out per voice.cooldown)
 
   function remember(userId, text) {
     const t = String(text || '').trim();
@@ -30,17 +30,17 @@ export function createVoice() {
     if (lastWords.size > 2000) lastWords.delete(lastWords.keys().next().value);
   }
 
-  /** Câu đọc cho một sự kiện, hoặc '' nếu theme không có mẫu cho sự kiện đó. */
+  /** The line for an event, or '' if the theme has no template for that event. */
   function line(voiceCfg = {}, ev) {
     if (!voiceCfg.enabled) return '';
     const kind = ev.kind === 'gift' ? (ev.big && voiceCfg.bigGift?.length ? 'bigGift' : 'gift')
       : ev.kind === 'command' && ev.draw ? (ev.draw.again && voiceCfg.drawAgain?.length ? 'drawAgain' : 'draw')
-      : ev.kind === 'command' && voiceCfg[`command:${ev.action}`] ? `command:${ev.action}` // câu riêng cho từng lệnh chat
+      : ev.kind === 'command' && voiceCfg[`command:${ev.action}`] ? `command:${ev.action}` // a dedicated line per chat command
       : ev.kind;
     if (kind === 'gift' && (ev.total || 0) < (voiceCfg.giftMinCoins ?? 1)) return '';
     let chat = '';
     if (kind === 'chat') {
-      if (ev.command) return ''; // lệnh chơi: đọc bằng câu của lệnh đó
+      if (ev.command) return ''; // game command: spoken with that command's own line
       chat = readableChat(ev.text, voiceCfg.blockWords);
       if (!chat) return '';
     }
@@ -63,7 +63,7 @@ export function createVoice() {
       gia_tri: ev.value ?? '',
       loi,
       chat,
-      // bốc thăm: mọi trường của lá thăm thành biến ({so}, {loai}, {tho}...), mảng nối bằng dấu phẩy
+      // draws: every field of the draw item becomes a variable ({so}, {loai}, {tho}...), arrays joined with commas
       ...Object.fromEntries(Object.entries(ev.draw || {}).map(([k, v]) => [k, Array.isArray(v) ? v.join(', ') : v])),
     });
   }
@@ -71,7 +71,7 @@ export function createVoice() {
   return { remember, line };
 }
 
-/** Điền {khoa}; khoá không có thì bỏ trống. Gọn dấu câu thừa sau khi điền. */
+/** Fill in {key}; missing keys become empty. Tidy up leftover punctuation after filling. */
 export function fill(template, vars) {
   return String(template)
     .replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? '').toString())

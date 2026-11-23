@@ -1,23 +1,23 @@
-// Kit.fx: thư viện hiệu ứng vẽ trên canvas. Mọi hiệu ứng nhận ảnh của theme (png / gif / webm / lottie)
-// qua tham số `image`; không có ảnh thì vẽ bằng hình mặc định.
+// Kit.fx: library of effects drawn on canvas. Every effect accepts a theme image (png / gif / webm / lottie)
+// through the `image` parameter; without an image it draws a default shape.
 //
-//   Kit.fx.emit('petal', { x, y, count: 20 })            hạt: smoke heart spark petal confetti snow leaf bubble firefly ember coin star
-//   Kit.fx.emitter('khoi', 'smoke', { x, y, every: 70 }) phát liên tục (dừng: Kit.fx.stop('khoi'))
-//   Kit.fx.rain('petal', { count: 40, duration: 4000 })  rơi từ trên xuống cả màn hình
+//   Kit.fx.emit('petal', { x, y, count: 20 })            particles: smoke heart spark petal confetti snow leaf bubble firefly ember coin star
+//   Kit.fx.emitter('khoi', 'smoke', { x, y, every: 70 }) continuous emission (stop with Kit.fx.stop('khoi'))
+//   Kit.fx.rain('petal', { count: 40, duration: 4000 })  falls from the top across the whole screen
 //   Kit.fx.halo(x, y, { radius, image })   Kit.fx.rays({ x, y })   Kit.fx.pillar(x, y)
 //   Kit.fx.text(x, y, '+1 công đức')       Kit.fx.spotlight(person)   Kit.fx.fireworks({ bursts: 5 })
 //   Kit.fx.sprite('assets/fx/halo.png', { x, y, w, h, duration, blend: 'screen' })
 //   Kit.fx.fly('lotus', from, to, { count: 6 })   Kit.fx.flash()   Kit.fx.shake()
-//   Kit.fx.beat.bpm = 128; Kit.fx.beat.pulse(t) → 0..1 theo nhịp nhạc
+//   Kit.fx.beat.bpm = 128; Kit.fx.beat.pulse(t) → 0..1 following the music beat
 
 (function () {
   const A = () => window.Kit.assets;
   const rand = (a, b) => a + Math.random() * (b - a);
-  const items = [];          // hạt + hiệu ứng có thời hạn
+  const items = [];          // particles + timed effects
   const emitters = new Map();
   const W = () => window.Kit.W || 1080, H = () => window.Kit.H || 1920;
 
-  // ---------- Kiểu hạt mặc định ----------
+  // ---------- Default particle types ----------
   const PRESETS = {
     smoke:    { life: [3200, 4600], size: [10, 15], grow: 2.2, vy: [-80, -55], vx: [-6, 6], sway: 6, alpha: 0.6, color: '255,252,246', shape: 'puff', layer: 'front' },
     heart:    { life: [1300, 2000], size: [16, 24], vy: [-160, -100], vx: [-30, 30], alpha: 1, shape: 'heart', color: '255,70,110' },
@@ -33,7 +33,7 @@
     star:     { life: [900, 1800], size: [8, 14], vy: [-60, -10], vx: [-30, 30], alpha: 1, shape: 'star', color: '255,230,140', glow: true, blend: 'lighter', twinkle: true },
   };
 
-  /** Thêm hoặc ghi đè kiểu hạt (theme tự định nghĩa, ví dụ bong bóng xà phòng có ảnh riêng). */
+  /** Add or override a particle type (defined by the theme, e.g. soap bubbles with their own image). */
   function preset(name, cfg) { PRESETS[name] = { ...(PRESETS[name] || {}), ...cfg }; }
 
   const pickR = (v) => (Array.isArray(v) ? rand(v[0], v[1]) : v ?? 0);
@@ -63,7 +63,7 @@
     }
   }
 
-  // ---------- Hiệu ứng có thời hạn ----------
+  // ---------- Timed effects ----------
   const add = (type, o) => { items.push({ type, born: performance.now(), life: o.duration ?? 2000, ...o }); };
 
   function halo(x, y, o = {}) { add('halo', { x, y, r: o.radius ?? 180, color: o.color ?? '255,214,120', image: o.image ? A().get(o.image) : null, duration: o.duration ?? 2600, layer: o.layer ?? 'back' }); }
@@ -73,10 +73,10 @@
   function flash(o = {}) { add('flash', { color: o.color ?? '255,240,200', duration: o.duration ?? 600, strength: o.strength ?? 0.5, layer: 'screen' }); }
   function shake(o = {}) { add('shake', { amp: o.intensity ?? 10, duration: o.duration ?? 500, layer: 'none' }); }
 
-  /** Đèn tiêu điểm: cả cảnh tối đi, vùng sáng bám theo `target` ({ x, y, h }). */
+  /** Spotlight: the whole scene dims and the lit area follows `target` ({ x, y, h }). */
   function spotlight(target, o = {}) { add('spot', { target, color: o.color ?? '255,236,190', r: o.radius ?? 140, dim: o.dim ?? 0.55, duration: o.duration ?? 4000, layer: 'top' }); }
 
-  /** Ảnh hiệu ứng (png / gif / webm / lottie) hiện tại chỗ, to dần, mờ dần. */
+  /** Effect image (png / gif / webm / lottie) shown in place, growing and fading out. */
   function sprite(url, o = {}) {
     add('sprite', {
       d: A().get(url), x: o.x ?? W() / 2, y: o.y ?? H() / 2, w: o.w, h: o.h, duration: o.duration ?? 2500, blend: o.blend,
@@ -84,7 +84,7 @@
     });
   }
 
-  /** Bay theo vòng cung từ `from` tới `to` (ảnh hoặc kiểu hạt có sẵn). */
+  /** Fly along an arc from `from` to `to` (an image or a built-in particle type). */
   function fly(what, from, to, o = {}) {
     const n = o.count ?? 1;
     for (let i = 0; i < n; i++) {
@@ -96,7 +96,7 @@
     }
   }
 
-  /** Pháo hoa nhiều màu + pháo lạnh sân khấu (vòi phun tia sáng) bắn từng cặp. */
+  /** Multicolor fireworks + stage cold-spark fountains (spark jets) firing in pairs. */
   function fireworks(o = {}) {
     const bursts = o.bursts ?? 4, now = performance.now();
     for (let i = 0; i < bursts; i++) {
@@ -117,14 +117,14 @@
   }
   const hsl = (h) => { const c = (n) => Math.round(255 * Math.max(0, Math.min(1, Math.abs(((h / 60 + n) % 6) - 3) - 1))); return `${c(0)},${c(4)},${c(2)}`; };
 
-  // ---------- Nhịp nhạc ----------
+  // ---------- Music beat ----------
   const beat = {
     bpm: 0, start: performance.now(),
     pulse(t = performance.now()) { if (!this.bpm) return 0; const ph = (((t - this.start) / 60000) * this.bpm) % 1; return Math.pow(1 - ph, 3); },
     bar(t = performance.now()) { return this.bpm ? Math.floor((((t - this.start) / 60000) * this.bpm) / 4) : 0; },
   };
 
-  // ---------- Cập nhật + vẽ ----------
+  // ---------- Update + draw ----------
   function update(dt, now) {
     for (const [, e] of emitters) {
       e.acc += dt;
@@ -155,7 +155,7 @@
     }
   }
 
-  /** Độ rung màn hình hiện tại (scene cộng vào camera). */
+  /** Current screen shake amount (the scene adds it to the camera). */
   function shakeOffset(now) {
     let x = 0, y = 0;
     for (const it of items) if (it.type === 'shake') { const k = 1 - (now - it.born) / it.life; if (k > 0) { x += (Math.random() - 0.5) * it.amp * k; y += (Math.random() - 0.5) * it.amp * k; } }

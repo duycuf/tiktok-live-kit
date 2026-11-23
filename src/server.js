@@ -1,4 +1,4 @@
-// TikTok Live Kit: lõi dùng chung. Nguồn live → đường ống → WebSocket → theme (overlay) + bảng điều khiển.
+// TikTok Live Kit: shared core. Live source → pipeline → WebSocket → theme (overlay) + control panel.
 
 import http from 'node:http';
 import fs from 'node:fs';
@@ -17,23 +17,23 @@ import { createTTS } from './core/tts.js';
 import { createDraws } from './core/draws.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-// Repo dự án (ví dụ một kênh live) có thể dùng kit này mà để theme + dữ liệu ở chỗ riêng:
-//   KIT_THEMES_DIR  thư mục theme của dự án (ưu tiên hơn themes/ của kit)
-//   KIT_DATA_DIR    thư mục dữ liệu (luật đã chỉnh, phiên live, giọng đọc...)
-//   KIT_CONFIG      file cấu hình của dự án (ghi đè config.json của kit)
+// A project repo (e.g. one live channel) can use this kit while keeping its themes + data elsewhere:
+//   KIT_THEMES_DIR  the project's theme folder (takes priority over the kit's themes/)
+//   KIT_DATA_DIR    data folder (edited rules, live session, voice...)
+//   KIT_CONFIG      the project's config file (overrides the kit's config.json)
 const DATA = path.resolve(process.env.KIT_DATA_DIR || path.join(ROOT, 'data'));
 const THEME_DIRS = [process.env.KIT_THEMES_DIR, path.join(ROOT, 'themes')].filter(Boolean).map((d) => path.resolve(d));
-// config.json là mặc định (trong git); lựa chọn đổi lúc chạy (kênh, nguồn, theme) lưu riêng ở data/settings.json
+// config.json holds the defaults (in git); choices changed at runtime (channel, source, theme) are saved separately in data/settings.json
 const SETTINGS_FILE = path.join(DATA, 'settings.json');
 const readJson = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return {}; } };
 const settings = readJson(SETTINGS_FILE);
 const config = { ...readJson(path.join(ROOT, 'config.json')), ...(process.env.KIT_CONFIG ? readJson(path.resolve(process.env.KIT_CONFIG)) : {}), ...settings };
 const PORT = Number(process.env.PORT || config.port || 3939);
-// host: một địa chỉ hoặc danh sách ("127.0.0.1,192.168.78.191" / ["127.0.0.1", "..."]): nghe thêm đúng các địa chỉ đó
-// (ví dụ đường USB tới điện thoại) mà không phải mở cả mạng như allowLan
+// host: one address or a list ("127.0.0.1,192.168.78.191" / ["127.0.0.1", "..."]): also listen on exactly those addresses
+// (e.g. a USB link to a phone) without opening up the whole network like allowLan
 const HOSTS = [].concat(process.env.HOST || config.host || '127.0.0.1').flatMap((h) => String(h).split(',')).map((h) => h.trim()).filter(Boolean);
 
-// ---------- Theme, luật, phiên ----------
+// ---------- Theme, rules, session ----------
 let theme, rules, session, engine, themeSettings;
 let periodicTimer = null;
 let periodicIdx = 0;
@@ -48,21 +48,21 @@ const tts = createTTS({
   onError: (msg) => { console.warn('[giọng đọc]', msg); broadcast({ type: 'error', message: msg }, 'control'); },
 });
 
-/** Đọc một câu bằng giọng của theme (nếu đang bật). */
-// Câu đọc quẻ, quà, danh hiệu, mục tiêu chen lên trước; câu chào người vào, đọc bình luận chỉ đọc khi rảnh
+/** Speak a line in the theme's voice (if enabled). */
+// Draw readings, gifts, titles and goals jump the queue; greetings for joiners and chat read-outs play only when idle
 const PRIORITY = new Set(['draw', 'gift', 'title', 'goal']);
 const LOW = new Set(['join', 'chat', 'like', 'member']);
-const CACHED = new Set(['draw', 'prompt', 'periodic']); // câu cố định: đọc sẵn, lần sau phát ngay
+const CACHED = new Set(['draw', 'prompt', 'periodic']); // fixed lines: pre-synthesized, played instantly next time
 function speak(text, meta = {}) {
   if (!text || !themeSettings?.voiceEnabled) return;
   const v = theme.voice || {};
   const go = () => tts.say(text, { voice: v.voice, meta, fallback: v.fallback, priority: PRIORITY.has(meta.about), low: LOW.has(meta.about), cache: CACHED.has(meta.about) });
-  // voice.delay: { "draw": 2300 } chờ cho khớp lúc hình hiện (thẻ quẻ mở sau khi lắc ống xăm)
+  // voice.delay: { "draw": 2300 } waits to sync with the visuals (the fortune card opens after the fortune-stick cup is shaken)
   const wait = Number(v.delay?.[meta.about]) || 0;
   if (wait) setTimeout(go, wait); else go();
 }
 
-/** Đọc sẵn các câu cố định: đọc quẻ của mọi lá thăm (mẫu câu không có tên người), tụng kinh định kỳ, lời mời tương tác. */
+/** Pre-synthesize fixed lines: readings for every draw item (templates without a viewer name), periodic chants, interaction prompts. */
 function warmDraws() {
   const v = theme.voice || {};
   if (!v.enabled) return;
@@ -72,7 +72,7 @@ function warmDraws() {
   for (const t of v.draw || []) {
     const used = [...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
     for (const d of Object.values(theme.draws || {})) for (const [i, it] of (d.items || []).entries()) {
-      // câu còn chỗ điền tên / lời riêng của từng người (mà lá thăm không có sẵn) thì không đọc sẵn được
+      // lines that still need a per-viewer name / message (which the draw item doesn't provide) can't be pre-synthesized
       if (used.some((k) => personal.includes(k) && !(k in it))) continue;
       texts.push(fill(t, { n: i + 1, ...Object.fromEntries(Object.entries(it).map(([k, x]) => [k, Array.isArray(x) ? x.join(', ') : x])) }));
     }
@@ -81,10 +81,10 @@ function warmDraws() {
   if (n) console.log(`[giọng đọc] đọc sẵn ${n} câu cố định ở chế độ nền`);
 }
 
-/** Mọi sự kiện đi ra overlay đều qua đây: nhớ lời người xem nói, đọc câu theo mẫu của theme. */
+/** Every event bound for the overlay passes through here: remember what viewers said, speak lines from the theme's templates. */
 function emitEvent(ev) {
   if (ev.kind === 'chat') { voice.remember(ev.user?.id, ev.text); lastChatAt = Date.now(); }
-  // lệnh chat có bốc thăm: server bốc để overlay và giọng đọc cùng một kết quả
+  // chat commands with a draw: the server draws so the overlay and the voice share one result
   if (ev.kind === 'command' && typeof ev.draw === 'string') { const d = draws.pick(theme.draws, ev.draw, ev.user?.id || ''); if (d) ev.draw = d; else delete ev.draw; }
   broadcast({ type: 'event', ev });
   if (!ev.test) speak(voice.line(theme.voice, ev), { for: ev.user?.id || '', about: ev.draw ? 'draw' : ev.kind });
@@ -121,7 +121,7 @@ function activate(themeId) {
 }
 activate(process.env.THEME || config.theme || 'starter');
 
-// ---------- Nội dung định kỳ (tụng kinh, lời mời, câu hỏi...) khi chat vắng ----------
+// ---------- Periodic content (chants, prompts, questions...) when chat is quiet ----------
 function schedulePeriodic() {
   clearInterval(periodicTimer);
   const p = theme.periodic || {};
@@ -130,14 +130,14 @@ function schedulePeriodic() {
   const every = Math.max(0.5, Number(p.everyMinutes) || 3) * 60000;
   periodicTimer = setInterval(() => {
     if (!themeSettings.periodicEnabled) return;
-    // chỉ chạy khi phòng vắng một lúc (mặc định 20 giây không có sự kiện)
+    // only runs once the room has been quiet for a while (default: 20 seconds without events)
     const quiet = (Number(p.quietSeconds ?? 20) || 0) * 1000;
     if (engine.lastEventAt && Date.now() - engine.lastEventAt < quiet) return;
     firePeriodic(items[periodicIdx++ % items.length]);
   }, every);
   periodicTimer.unref?.();
 }
-// ---------- Lời mời tương tác khi chat vắng ----------
+// ---------- Interaction prompts when chat is quiet ----------
 // theme.json "prompts": { "everySeconds": 90, "quietSeconds": 25, "items": ["Gõ xin xăm để xem quẻ...", { "text": "...", "say": "..." }] }
 function schedulePrompts() {
   clearInterval(promptTimer);
@@ -204,7 +204,7 @@ const server = http.createServer((req, res) => {
     return res.end(session.csv());
   }
   if (p === '/api/theme-files') {
-    // liệt kê file trong themes/<theme>/assets/<dir> (nhạc, ảnh) để theme tự nạp những gì người dùng thả vào
+    // list files in themes/<theme>/assets/<dir> (music, images) so the theme can load whatever the user drops in
     const dir = String(url.searchParams.get('dir') || '').replace(/[^a-z0-9_-]/gi, '');
     let files = [];
     try { files = fs.readdirSync(path.join(theme.dir, 'assets', dir)).filter((f) => /\.(mp3|ogg|wav|m4a|png|jpe?g|webp|gif|mp4|webm|json)$/i.test(f)).sort(); } catch {}
@@ -231,7 +231,7 @@ const wss = new WebSocketServer({
   server, path: '/ws', maxPayload: 256 * 1024,
   verifyClient: ({ origin, req }) => {
     if (!hostOk(req.headers.host)) return false;
-    if (!origin) return true; // client gốc (game Unity, script) không gửi Origin
+    if (!origin) return true; // native clients (Unity game, scripts) don't send Origin
     try { return config.allowLan || LOCAL_HOSTS.has(new URL(origin).hostname); } catch { return false; }
   },
 });
@@ -265,7 +265,7 @@ const publicTheme = () => ({
   text: theme.text || {}, settings: theme.settings, characters: theme.characters, animations: theme.animations, npcs: theme.npcs,
   hud: theme.hud, colors: theme.colors, sounds: theme.sounds, bigGift: theme.bigGift, reactions: theme.reactions, scene: theme.scene, goals: theme.goals,
 });
-// Overlay cần luật để tự sinh bảng "tặng gì được gì"; kèm tên và ảnh các quà đã gặp
+// The overlay needs the rules to build its "what each gift does" table; includes names and images of gifts seen so far
 const guideData = () => ({ rules, gifts: catalog.list().map((g) => ({ id: g.id, name: g.name, coins: g.coins, image: g.image })) });
 
 function init(ws) {
@@ -285,9 +285,9 @@ const CONTROL = {
   async disconnect() { await manager.stop(); },
   sim(m) { demo.fire(m.kind, m.arg, m.arg2, m.gift); },
   crowd(m) { demo.crowd(m.n, (config.maxJoinsPerSecond || 15) * 0.8); },
-  demo(m) { demo.auto(Number(m.rate) || 0, { gifts: manager.status.state === 'idle' }); pushState(); }, // đang nối live thật: giả lập không tạo quà
+  demo(m) { demo.auto(Number(m.rate) || 0, { gifts: manager.status.state === 'idle' }); pushState(); }, // connected to a real live: the simulator creates no gifts
   test(m) {
-    // Bắn thẳng một hành động của theme để xem hiệu ứng, không cộng điểm
+    // Fire a theme action directly to preview the effect, without adding points
     const a = theme.actions.find((x) => x.id === m.action);
     if (!a) return;
     const p = session.active(1)[0] || { id: 'test', name: 'Người thử', avatar: '', coins: 0, title: '', rank: 0 };
@@ -352,22 +352,22 @@ wss.on('connection', (ws) => {
 
 const heartbeat = setInterval(() => {
   for (const c of wss.clients) { if (!c.alive) { c.terminate(); continue; } c.alive = false; c.ping(); }
-  if (manager.status.state === 'connected') pushState(); // cập nhật "sự kiện cuối cách đây"
+  if (manager.status.state === 'connected') pushState(); // refresh "time since last event"
 }, 15000);
 
-// ---------- Kết nối live ----------
+// ---------- Live connection ----------
 const manager = createManager({
   config,
   onEvent: (ev) => engine.ingest(ev),
   onStatus: (st) => {
-    // nối được buổi live thật thì tắt giả lập: từ đây chỉ còn người xem thật
+    // once a real live is connected, turn off the simulator: only real viewers from here on
     if (st?.state === 'connected' && demo.running) { demo.stop(); console.log('[live] đã nối, tắt giả lập'); }
     pushState();
   },
   lastEventAt: () => engine.lastEventAt,
 });
 
-for (const h of HOSTS.slice(1)) { // địa chỉ thêm: cùng xử lý, cùng WebSocket
+for (const h of HOSTS.slice(1)) { // extra addresses: same handler, same WebSocket
   const extra = http.createServer(server.listeners('request')[0]);
   extra.on('upgrade', (req, socket, head) => server.emit('upgrade', req, socket, head));
   extra.on('error', (e) => console.warn(`[mạng] không nghe được ${h}:${PORT} (${e.code || e.message})`));

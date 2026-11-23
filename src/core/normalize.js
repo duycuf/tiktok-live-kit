@@ -1,5 +1,5 @@
-// Đưa dữ liệu thô của mọi nguồn (tiktok-live-connector, TikFinity, giả lập) về MỘT dạng sự kiện chung.
-// Tên trường đổi giữa các bản thư viện và giữa các nguồn, nên đọc phòng thủ.
+// Convert raw data from every source (tiktok-live-connector, TikFinity, simulator) into ONE common event shape.
+// Field names differ between library versions and between sources, so read defensively.
 
 const KIND_ALIASES = {
   member: 'member', join: 'member', viewerjoin: 'member',
@@ -30,7 +30,7 @@ export function normUser(data = {}) {
   const u = data.user || data.userData || data.author || data;
   const uniqueId = text(u.uniqueId, u.unique_id, u.displayId, u.username, data.uniqueId);
   const id = text(u.userId, u.user_id, u.id, data.userId, uniqueId, u.nickname) || 'an-danh';
-  // Ưu tiên ảnh JPEG/PNG: một số trình duyệt nhúng (OBS cũ) không giải mã được WebP của TikTok
+  // Prefer JPEG/PNG images: some embedded browsers (older OBS) can't decode TikTok's WebP
   const pics = [
     u.profilePictureUrl, u.profilePictureUrls, u.profilePicture?.urls, u.profilePicture?.urlList,
     u.avatarThumb?.urlList, u.avatarThumb?.mUrls, u.avatarMedium?.urlList, u.avatarMedium?.mUrls,
@@ -56,13 +56,13 @@ function normGift(data) {
     unitCoins: Math.max(0, Number(d.diamondCount ?? d.diamond_count ?? ext.diamond_count ?? data.diamondCount) || 0) || 1,
     streakable: type === 1,
     repeatCount,
-    // nguồn không báo repeatEnd thì coi như quà đã chốt
+    // if the source doesn't report repeatEnd, treat the gift as final
     repeatEnd: data.repeatEnd === undefined ? true : Boolean(data.repeatEnd),
     groupId: text(data.groupId, data.group_id),
   };
 }
 
-/** Một sự kiện thô → sự kiện chung, hoặc null nếu không dùng tới. */
+/** One raw event → a common event, or null if unused. */
 export function normalize(kindName, data = {}) {
   let kind = kindOf(kindName);
   if (!kind) return null;
@@ -84,7 +84,7 @@ export function normalize(kindName, data = {}) {
   return ev;
 }
 
-/** Tin nhắn TikFinity: {event, data} hoặc mảng các tin đó. */
+/** TikFinity message: {event, data} or an array of them. */
 export function normalizeTikFinity(raw) {
   let msg = raw;
   if (Buffer.isBuffer(msg)) msg = msg.toString('utf8');
@@ -94,5 +94,5 @@ export function normalizeTikFinity(raw) {
     .filter(Boolean);
 }
 
-/** Bỏ dấu, đ→d, chữ thường: so khớp tên quà và lệnh chat tiếng Việt. */
+/** Strip diacritics, đ→d, lowercase: for matching gift names and Vietnamese chat commands. */
 export const plain = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase().replace(/\s+/g, ' ').trim();

@@ -1,4 +1,4 @@
-// Bảng điều khiển chung: kết nối live, luật, thử nghiệm, thống kê, hướng dẫn. Tự đọc theme đang chạy.
+// Shared control panel: live connection, rules, testing, stats, guide. Reads the active theme on its own.
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -7,8 +7,8 @@ const fmt = (n) => Number(n || 0).toLocaleString('vi-VN');
 let ws;
 let theme = null;
 let rules = null;
-let gifts = [];       // quà đã gặp thật trên live
-let presetGifts = []; // vài quà phổ biến để thử khi chưa gặp quà thật
+let gifts = [];       // gifts actually seen on a live stream
+let presetGifts = []; // a few common gifts to test with before any real gift has been seen
 const send = (m) => ws?.readyState === 1 && ws.send(JSON.stringify(m));
 
 const OV = location.origin + '/overlay';
@@ -23,7 +23,7 @@ document.querySelectorAll('[data-copy-prompt]').forEach((b) => (b.onclick = () =
   setTimeout(() => (b.textContent = 'Chép'), 2000);
 }));
 
-// ---------- Tab ----------
+// ---------- Tabs ----------
 function showTab(id) {
   if (!document.querySelector(`[data-pane="${id}"]`)) id = 'live';
   document.querySelectorAll('[data-pane]').forEach((p) => (p.hidden = p.dataset.pane !== id));
@@ -35,7 +35,7 @@ let savedTab = 'live';
 try { savedTab = localStorage.getItem('kit.tab') || 'live'; } catch {}
 showTab(savedTab);
 
-// ---------- Kết nối live ----------
+// ---------- Live connection ----------
 $('btnConnect').onclick = () => send({ type: 'connect', username: $('user').value, provider: $('provider').value });
 $('btnStop').onclick = () => send({ type: 'disconnect' });
 $('themeSel').onchange = () => send({ type: 'setTheme', id: $('themeSel').value });
@@ -63,7 +63,7 @@ function renderState(s) {
   if (!s.demo) document.querySelectorAll('[data-rate]').forEach((b) => b.classList.toggle('on', b.dataset.rate === '0'));
 }
 
-// ---------- Thử nghiệm ----------
+// ---------- "Thử nghiệm" (Test) tab ----------
 const SIMS = [
   ['+1 người vào', { kind: 'member' }], ['Bình luận', { kind: 'chat' }], ['Thả tim', { kind: 'like' }],
   ['Theo dõi', { kind: 'follow' }], ['Chia sẻ', { kind: 'share' }], ['Combo 1 xu ×10', { kind: 'gift', arg: 1, arg2: 10 }],
@@ -84,7 +84,7 @@ function renderActions() {
 }
 
 const giftImg = (g) => g.image ? `<img src="${esc(g.image)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : '<span class="noimg">🎁</span>';
-const GROUPS = [['Quà nhỏ', 1, 9, 1], ['Quà vừa', 10, 99, 50], ['Quà lớn', 100, Infinity, 500]]; // tên, từ, đến, giá của nút "quà bất kỳ"
+const GROUPS = [['Quà nhỏ', 1, 9, 1], ['Quà vừa', 10, 99, 50], ['Quà lớn', 100, Infinity, 500]]; // name, from, to, price of the "Quà bất kỳ" (any gift) button
 
 function renderGiftTests() {
   const all = new Map();
@@ -105,8 +105,8 @@ $('giftTests').onclick = (e) => {
   if (g) send({ type: 'sim', kind: 'gift', arg: g.coins, gift: { id: g.id, name: g.name, coins: g.coins, image: g.image || '' } });
 };
 
-// ---------- Luật ----------
-// icon của hành động có thể là emoji hoặc đường dẫn ảnh của theme
+// ---------- "Luật" (Rules) tab ----------
+// An action's icon can be an emoji or a path to a theme image
 const isImg = (icon) => /[./]/.test(icon || '');
 const iconText = (a) => (a.icon && !isImg(a.icon) ? a.icon + ' ' : '');
 const iconHtml = (a) => (isImg(a.icon) ? `<img class="ico" src="/themes/${esc(theme.id)}/${esc(a.icon)}" alt="">` : esc(a.icon || ''));
@@ -162,7 +162,7 @@ function collectRules() {
 document.addEventListener('click', (e) => {
   if (e.target.matches('[data-del]')) { e.target.closest('tr').remove(); renderCatalog(); return; }
   if (!e.target.matches('[data-try]')) return;
-  // Thử dòng đang sửa (chưa cần lưu): bắn thẳng hành động của dòng, kèm tên quà / chữ của dòng
+  // Try the row being edited (no save needed): fire the row's action directly, with its gift name / label
   const r = rowData(e.target.closest('tr'));
   const g = gifts.find((x) => x.id === r.giftId);
   const coins = Number(r.minCoins) || g?.coins || 1;
@@ -175,7 +175,7 @@ $('overrides').addEventListener('change', renderCatalog);
 $('saveRules').onclick = () => { send({ type: 'saveRules', rules: collectRules() }); $('rulesMsg').textContent = 'Đã lưu ✓'; };
 $('resetRules').onclick = () => { if (confirm('Bỏ luật đã chỉnh, dùng lại luật mặc định của theme?')) send({ type: 'resetRules' }); };
 
-// ---------- Cài đặt theme ----------
+// ---------- Theme settings ----------
 function renderSettings(values, keepFocus = false) {
   const fields = theme.settings || [];
   $('settingsBox').hidden = !fields.length;
@@ -198,7 +198,7 @@ $('settings').addEventListener('input', (e) => {
   settingsTimer = setTimeout(() => send({ type: 'saveSettings', values: { [el.dataset.set]: value } }), 150);
 });
 
-// ---------- Nhật ký ----------
+// ---------- Log ----------
 function log(text) {
   const el = document.createElement('div');
   el.textContent = new Date().toLocaleTimeString('vi-VN') + '  ' + text;
@@ -231,7 +231,7 @@ function connect() {
       const changed = theme && theme.id !== msg.theme.id;
       theme = msg.theme; rules = msg.rules; gifts = msg.gifts || []; presetGifts = msg.presetGifts || [];
       document.title = `${theme.name} · TikTok Live Kit`;
-      document.querySelectorAll('[data-starter]').forEach((el) => (el.hidden = !theme.id.startsWith('template'))); // khung trống: gợi ý làm theme riêng
+      document.querySelectorAll('[data-starter]').forEach((el) => (el.hidden = !theme.id.startsWith('template'))); // blank template: suggest building a custom theme
       $('themeSel').innerHTML = msg.themes.map((t) => `<option value="${esc(t.id)}"${t.id === theme.id ? ' selected' : ''}>${esc(t.name)}</option>`).join('');
       $('provider').value = msg.config.provider;
       if (!$('user').value) $('user').value = msg.config.tiktokUsername;

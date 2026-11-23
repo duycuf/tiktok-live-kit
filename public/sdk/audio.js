@@ -1,12 +1,12 @@
-// Kit.audio: nhạc nền, tiếng hiệu ứng, giọng đọc. Chỉ dùng file thật của theme:
-//   assets/music/*.mp3   phát lặp theo danh sách
-//   assets/sfx/<ten>.mp3 Kit.audio.sfx('<ten>'), mỗi tên có thời gian nghỉ để live đông không dồn dập
-//   giọng đọc            server gửi url, phát lần lượt, nhạc tự nhỏ khi đang đọc
-// Cấu hình nghỉ theo tên trong theme.json: "sounds": { "chuong": { "cooldown": 3000, "volume": 0.8 } }
+// Kit.audio: background music, sound effects, voice. Uses only the theme's own files:
+//   assets/music/*.mp3    played in a loop as a playlist
+//   assets/sfx/<name>.mp3 Kit.audio.sfx('<name>'), each name has a cooldown so a busy live does not get too noisy
+//   voice                 the server sends a URL; clips play in turn, music ducks while the voice plays
+// Per-name cooldown config in theme.json: "sounds": { "chuong": { "cooldown": 3000, "volume": 0.8 } }
 
 (function () {
   let ctx = null, master, musicBus, sfxBus, voiceBus, duck;
-  const buffers = new Map();   // tên -> AudioBuffer
+  const buffers = new Map();   // name -> AudioBuffer
   const lastAt = new Map();
   let recent = [];
   let sfxList = [];
@@ -56,7 +56,7 @@
     }
   }
 
-  /** Phát tiếng hiệu ứng theo tên file (không đuôi). Không có file thì im lặng. */
+  /** Play a sound effect by file name (without extension). Silent if the file is missing. */
   function sfx(name, o = {}) {
     if (!name || !init()) return false;
     const key = String(name).toLowerCase();
@@ -67,19 +67,19 @@
     const cooldown = o.cooldown ?? cfg.cooldown ?? 400;
     if (now - (lastAt.get(key) || -1e9) < cooldown) return false;
     recent = recent.filter((t) => now - t < 1500);
-    if (recent.length >= (cfg.priority ? 6 : 4)) return false; // đông tiếng thì bỏ bớt
+    if (recent.length >= (cfg.priority ? 6 : 4)) return false; // drop some when too many sounds overlap
     lastAt.set(key, now); recent.push(now);
     const src = ctx.createBufferSource(), g = ctx.createGain();
     src.buffer = buf;
     src.playbackRate.value = (o.rate ?? 1) * (cfg.vary ? 1 + (Math.random() - 0.5) * cfg.vary : 1);
     g.gain.value = (o.volume ?? 1) * (cfg.volume ?? 1);
     src.connect(g); g.connect(sfxBus);
-    src.start(Math.ceil(ctx.currentTime / 0.1) * 0.1); // vào lưới 100ms cho đều
+    src.start(Math.ceil(ctx.currentTime / 0.1) * 0.1); // snap to a 100ms grid for even timing
     if (cfg.duck) duckMusic(cfg.duck, Math.min(6, buf.duration));
     return true;
   }
 
-  // ---------- Nhạc nền ----------
+  // ---------- Background music ----------
   let musicEl = null, playlist = [], idx = 0;
   async function startMusic() {
     playlist = (await listDir('music')).filter((f) => /\.(mp3|ogg|wav|m4a)$/i.test(f));
@@ -91,7 +91,7 @@
   }
   function playTrack() { musicEl.src = 'assets/music/' + encodeURIComponent(playlist[idx]); musicEl.play().catch(() => {}); }
 
-  // ---------- Giọng đọc ----------
+  // ---------- Voice ----------
   const voiceQ = [];
   let speaking = false;
   function voice(url, onStart, onEnd) {

@@ -1,10 +1,10 @@
-"""Ảnh hiệu ứng nền đen (ánh sáng, khói, tia sáng) -> PNG nền trong suốt, giữ độ mờ tự nhiên.
+"""Effect images on a black background (light, smoke, rays) -> PNG with a transparent background, keeping natural softness.
 
-Chạy (ở thư mục kit, cần uv: https://docs.astral.sh/uv/):
+Run (in the kit folder, needs uv: https://docs.astral.sh/uv/):
     pnpm assets:alpha themes/<id>/assets/raw/halo.jpg themes/<id>/assets/fx/halo.png --max 1024
 
-Độ sáng thành độ đục: chỗ đen tuyệt đối trong suốt hẳn, chỗ sáng giữ nguyên màu.
---corner 0.07: xoá một góc vuông ở dưới bên phải (dấu ✦ Gemini / Flow tự chèn), đặt 0 để giữ nguyên.
+Brightness becomes opacity: pure black becomes fully transparent, bright areas keep their color.
+--corner 0.07: erase a square in the bottom-right corner (the ✦ mark Gemini / Flow add), set 0 to keep it.
 """
 import argparse
 
@@ -27,9 +27,9 @@ if a.corner > 0:
     s = int(min(w, h) * a.corner)
     rgb[h - s:, w - s:] = 0
 alpha = rgb.max(axis=2)
-alpha = np.clip((alpha - 6) / (255 - 6), 0, 1)  # bỏ nhiễu nén gần đen
+alpha = np.clip((alpha - 6) / (255 - 6), 0, 1)  # drop near-black compression noise
 safe = np.maximum(alpha, 1e-3)[..., None]
-color = np.clip(rgb / 255 / safe, 0, 1)  # bỏ trộn đen để màu không xỉn khi đặt lên nền
+color = np.clip(rgb / 255 / safe, 0, 1)  # un-premultiply black so colors don't look dull over a background
 out = np.dstack([color * 255, alpha * 255]).astype(np.uint8)
 Image.fromarray(out, 'RGBA').save(a.out, optimize=True)
 print(f'{a.out}: {w}x{h}')

@@ -1,5 +1,5 @@
-// Luật: quà nào / lệnh chat nào → hành động nào của theme.
-// Thứ tự ưu tiên cho quà: đúng ID quà → đúng tên quà (bí danh, không dấu) → bậc theo giá một món.
+// Rules: which gift / chat command → which theme action.
+// Gift priority: exact gift ID → exact gift name (aliases, diacritics-insensitive) → tier by unit price.
 
 import { plain } from './normalize.js';
 

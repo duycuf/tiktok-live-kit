@@ -1,5 +1,5 @@
-// Nguồn trực tiếp qua thư viện tiktok-live-connector (không chính thức, ký qua Euler Stream).
-// Không cần cài gì thêm, chỉ cần tên kênh đang live.
+// Direct source via the tiktok-live-connector library (unofficial, signed through Euler Stream).
+// Nothing extra to install; only needs the name of a channel that is live.
 
 import { TikTokLiveConnection, WebcastEvent, ControlEvent } from 'tiktok-live-connector';
 import { normalize } from '../core/normalize.js';

@@ -1,5 +1,5 @@
-// Quản lý kết nối live: chọn nguồn, tự thử lại (giãn dần 2s → 30s), tự chuyển nguồn khi chế độ "auto",
-// và canh "im lặng bất thường" (đang kết nối mà lâu không có sự kiện nào thì nối lại).
+// Live connection manager: picks the source, retries automatically (backoff 2s → 30s), switches sources in "auto" mode,
+// and watches for "abnormal silence" (connected but no events for a long time → reconnect).
 
 import { createTikFinity } from './tikfinity.js';
 import { createConnector } from './connector.js';
@@ -82,7 +82,7 @@ export function createManager({ config, onEvent, onStatus, lastEventAt }) {
     if (!keep) set('idle', '', null);
   }
 
-  // Canh im lặng: nguồn trực tiếp đôi khi "treo" mà không báo ngắt
+  // Silence watchdog: the direct source sometimes "hangs" without reporting a disconnect
   const watchdog = setInterval(() => {
     if (!active || status.state !== 'connected' || active.name !== 'connector') return;
     const quietMs = Date.now() - Math.max(lastEventAt(), connectedAt);

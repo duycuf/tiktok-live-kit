@@ -1,4 +1,4 @@
-// Người xem giả để thử theme khi chưa live (Test Lab). Đi qua đúng đường ống như live thật.
+// Fake viewers for testing a theme before going live (Test Lab). Goes through the same pipeline as a real live.
 
 const NAMES = ['Thảo My', 'Hoàng Dương', 'oanh luu', 'Phúc', 'Thị Lê', 'Li.am', 'Pnthinh', 'Minh Tâm', 'An Nhiên', 'Bảo Ngọc', 'Gia Huy', 'Thanh Tú', 'Kim Chi', 'Đức Anh', 'Hải Yến', 'Quang Vinh', 'Ngọc Hân', 'Trúc Lâm', 'Diệu Linh', 'Văn Khải'];
 const CHATS = ['Xin chào mọi người', 'Hay quá', '❤️❤️❤️', 'Chúc kênh nhiều sức khoẻ', 'Lên nào', 'Đỉnh quá', 'Cho xin 1 tim', 'Có ai không'];
@@ -33,7 +33,7 @@ export function createDemo({ onEvent, extraChats = [] }) {
     like: (n) => ({ kind: 'like', user: someone(), likeCount: n || 1 + Math.floor(Math.random() * 15) }),
     follow: () => ({ kind: 'follow', user: someone() }),
     share: () => ({ kind: 'share', user: someone() }),
-    // gift: quà cụ thể (từ thư viện quà đã gặp) để thử đúng luật theo ID / tên
+    // gift: a specific gift (from the catalog of gifts seen) to test rules by ID / name
     gift: (coins, count = 1, gift) => {
       const g = gift?.id ? { id: String(gift.id), name: String(gift.name || 'Quà'), unitCoins: Number(gift.coins) || Number(coins) || 1, image: String(gift.image || '') }
         : GIFTS.find((x) => x.unitCoins === Number(coins)) || { id: 'demo-' + coins, name: `Quà ${coins} xu`, unitCoins: Number(coins) || 1 };
@@ -46,14 +46,14 @@ export function createDemo({ onEvent, extraChats = [] }) {
     if (ev) onEvent(ev);
   }
 
-  // Thả n người vào (rải đều, dưới giới hạn maxJoinsPerSecond của engine để không bị bỏ bớt) để thử cảnh đông
+  // Drop n viewers in (spread evenly, under the engine's maxJoinsPerSecond limit so none are dropped) to test a crowded scene
   function crowd(n, perSecond = 12) {
     const total = Math.max(1, Math.min(500, Math.round(Number(n) || 0)));
     const gap = Math.max(4000 / total, 1000 / Math.max(1, perSecond));
     for (let i = 0; i < total; i++) setTimeout(() => fire('member'), Math.round(i * gap));
   }
 
-  // gifts: false khi đang lên sóng thật: chỉ có người vào, chat, tim cho cảnh có không khí, không bày quà giả trước mặt người xem
+  // gifts: false while actually on air: only joins, chats and likes to liven up the scene, no fake gifts in front of viewers
   function auto(rate = 1, { gifts = true } = {}) {
     stop();
     if (!rate) return;

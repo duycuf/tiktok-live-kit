@@ -1,15 +1,15 @@
-// Kit.scene: engine "đám đông trong một không gian". Nền ảnh/video, người xem thành nhân vật đứng/ngồi
-// theo phối cảnh của scene.json, ghế danh dự cho top, NPC dựng sẵn, camera zoom, nhãn tên, bong bóng chat.
+// Kit.scene: "crowd in a space" engine. Image/video background, viewers become characters standing/sitting
+// in the perspective of scene.json, seats of honor for the top, prebuilt NPCs, camera zoom, name tags, chat bubbles.
 //
-// Nhân vật khai báo trong theme.json "characters": mỗi mẫu người là một tờ khung hình (png chia đều ngang)
-// hoặc ảnh động (gif / webm). Chưa có ảnh thì engine vẽ hình người giữ chỗ.
+// Characters are declared in theme.json "characters": each character template is a sprite sheet (png split into equal horizontal frames)
+// or an animated image (gif / webm). Without an image the engine draws a placeholder figure.
 //   { "id": "ba", "label": "Bà", "keywords": ["bà"], "sheet": "assets/chars/ba.png", "frames": 5,
 //     "poses": { "idle": 0, "bowHalf": 1, "bowFull": 2, "stand": 3, "offer": 4 }, "walk": [3], "weight": 1 }
-//   Khung đi theo hướng (tuỳ chọn): "walkUp": [...] đi lên/vào (thấy lưng), "walkDown": [...] đi xuống/ra (thấy mặt),
-//   "walkSide": [...] đi ngang (vẽ nhân vật quay sang phải, engine tự lật khi đi sang trái). Thiếu hướng nào thì dùng "walk".
-// Hoạt cảnh khai báo trong theme.json "animations": { "bow": { "frames": ["idle","bowHalf","bowFull","bowHalf"], "ms": 1300 } }
-// scene.json "fill": { "rows": 2 }: luôn lấp kín N hàng đầu bằng người không tên (không tính vào số người xem);
-// các hàng đó cố định, người xem thật ngồi từ hàng phía sau.
+//   Directional walk frames (optional): "walkUp": [...] walking up/in (back visible), "walkDown": [...] walking down/out (face visible),
+//   "walkSide": [...] walking sideways (draw the character facing right; the engine flips it when walking left). Any missing direction uses "walk".
+// Animations are declared in theme.json "animations": { "bow": { "frames": ["idle","bowHalf","bowFull","bowHalf"], "ms": 1300 } }
+// scene.json "fill": { "rows": 2 }: always fills the first N rows with unnamed people (not counted as viewers);
+// those rows stay fixed, real viewers sit from the rows behind them.
 
 (function () {
   const K = window.Kit;
@@ -44,7 +44,7 @@
   const hash = (s) => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
   const col = (k, d) => theme.colors?.[k] || d;
 
-  // ---------- Khởi tạo ----------
+  // ---------- Initialization ----------
   function init(opts) {
     canvas = opts.canvas; ctx = canvas.getContext('2d');
     theme = opts.theme || theme;
@@ -82,15 +82,15 @@
     });
   }
 
-  /** Điểm đặt tên trong scene.json "points" (ví dụ "censerMouth": [540, 940]). */
+  /** A named point in scene.json "points" (e.g. "censerMouth": [540, 940]). */
   function point(name) {
     if (!name) return null;
-    if (typeof name === 'object') return Array.isArray(name) ? { x: name[0], y: name[1] } : name; // [x, y] hoặc { x, y }
+    if (typeof name === 'object') return Array.isArray(name) ? { x: name[0], y: name[1] } : name; // [x, y] or { x, y }
     const p = theme.scene?.points?.[name];
     return p ? (Array.isArray(p) ? { x: p[0], y: p[1] } : p) : null;
   }
 
-  // ---------- Người lấp chỗ: giữ kín N hàng đầu ----------
+  // ---------- Fillers: keep the first N rows full ----------
   const fillers = new Map();
   let fillSeq = 0, fillAt = 0;
   function frontSlots() {
@@ -117,7 +117,7 @@
     }
   }
 
-  // ---------- Chỗ đứng: tự giãn theo số người ----------
+  // ---------- Standing spots: spread out according to headcount ----------
   let lastRelayout = 0;
   function relayout(force = false) {
     const count = [...persons.values()].filter((p) => !p.leaving && !p.slot?.vip).length;
@@ -126,7 +126,7 @@
     lastRelayout = t;
     const next = G.layoutFor(S, count + 4);
     if (!force && next.density === layout.density) return;
-    // phòng thưa ra chỉ khi vắng hẳn (tránh nhảy qua nhảy lại)
+    // only thin the room out once it is clearly empty (avoids flip-flopping)
     if (!force && next.density > layout.density && count > layout.slots.length * 0.45) return;
     const movers = [...persons.values()].filter((p) => !p.leaving && !p.slot?.vip).sort((a, b) => a.joinedAt - b.joinedAt);
     layout = { density: next.density, slots: next.slots.map((s) => ({ ...s, taken: null })) };
@@ -153,7 +153,7 @@
     return s;
   }
 
-  // ---------- Người ----------
+  // ---------- People ----------
   function pickChar(id, preferred) {
     if (preferred) { const c = chars.find((x) => x.id === preferred); if (c) return c; }
     const total = chars.reduce((a, c) => a + (c.weight ?? 1), 0);
@@ -209,7 +209,7 @@
     npcs.set(n.id, p);
   }
 
-  /** Đường đi: dọc làn cạnh lối giữa rồi rẽ vào chỗ (né vật giữa lối như lư hương, sân khấu). */
+  /** Path: along the lane beside the center aisle, then turn into the spot (avoiding objects in the aisle such as an incense burner or a stage). */
   function route(p, target) {
     if (!S.aisle) return [{ x: target.x, y: target.y }];
     const ax = S.aisle.x;
@@ -224,7 +224,7 @@
     return point(to) || (typeof to === 'object' ? to : p.slot);
   }
 
-  // Hàng việc của từng người: walk / pose / play / wait / do
+  // Per-person task queue: walk / pose / play / wait / do
   const P = {
     walkTo(p, to) { p.tasks.push({ type: 'walk', pts: (q) => { const t = resolveTarget(q, to); return t ? (to === 'home' || to === 'seat' ? route(q, t) : route(q, t)) : []; } }); },
     pose(p, pose) { p.tasks.push({ type: 'pose', pose }); },
@@ -272,27 +272,27 @@
       else if (task.type === 'do') { p.task = null; try { task.fn(p); } catch (e) { console.error('[Kit.scene] lỗi trong bước "do"', e); } }
     } else {
       p.walking = false;
-      // rảnh mà không ở đúng chỗ (chỗ ngồi vừa xếp lại lúc đang đi) thì tự về chỗ
+      // idle but not at its spot (spots were reshuffled while walking): walk back to it
       if (p.slot && !p.leaving && Math.hypot(p.x - p.slot.x, p.y - p.slot.y) > 3) p.tasks.push({ type: 'walk', pts: (q) => route(q, q.slot) }, { type: 'pose', pose: 'idle' });
     }
     if (p.aura > 0) p.aura = Math.max(0, p.aura - dt / 3500);
     if (p.bubble && t > p.bubble.until) p.bubble = null;
   }
 
-  /** Tư thế đang hiện: theo hoạt cảnh nếu đang chạy, theo bước chân nếu đang đi. */
+  /** Pose currently shown: from the animation if one is running, from the walk cycle if walking. */
   function currentPose(p) {
     if (p.walking) return 'walk';
     if (p.anim) { const f = p.anim.a.frames; return f[Math.min(f.length - 1, Math.floor((p.anim.k % 1) * f.length))]; }
     return p.pose || 'idle';
   }
 
-  // ---------- Vẽ người ----------
+  // ---------- Drawing people ----------
   const STAND_POSES = ['stand', 'walk', 'incense', 'offer', 'sitDown', 'cheer', 'dance1', 'dance2'];
   function drawPerson(p, t) {
     let alpha = 1;
     if (p.leaving) { alpha = 1 - (t - p.fadeStart) / 1200; if (alpha <= 0) { persons.delete(p.id); return; } }
     const h = height(p);
-    // "idle@0.8": cùng tư thế nhưng nén thấp xuống (làm động tác cúi khi tờ nhân vật không có khung cúi)
+    // "idle@0.8": same pose but squashed lower (fakes a bow when the character sheet has no bow frame)
     let pose = currentPose(p), squash = 1;
     if (pose.includes('@')) { const [name, k] = pose.split('@'); pose = name; squash = Number(k) || 1; }
     const c = p.char;
@@ -303,7 +303,7 @@
       g.addColorStop(0, `rgba(255,220,120,${0.8 * p.aura})`); g.addColorStop(1, 'rgba(255,200,80,0)');
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.5, h * 1.1, 0, 6.283); ctx.fill();
     }
-    // nệm dưới người đang quỳ / ngồi (scene.json person.cushion); ghế danh dự đã có nệm vẽ sẵn trên nền
+    // cushion under a kneeling / sitting person (scene.json person.cushion); seats of honor already have cushions painted on the background
     const cu = S.person?.cushion;
     const atVip = p.slot?.vip && Math.hypot(p.x - p.slot.x, p.y - p.slot.y) < 3;
     if (cu && !p.walking && !atVip && p.cfg?.cushion !== false && !(cu.standPoses || STAND_POSES).includes(pose)) {
@@ -327,7 +327,7 @@
       const poses = c.poses || {};
       let idx = poses[pose];
       if (pose === 'walk') {
-        // khung đi theo hướng: walkUp (thấy lưng), walkDown (thấy mặt), walkSide (nghiêng, vẽ quay sang phải); thiếu thì dùng walk
+        // directional walk frames: walkUp (back), walkDown (face), walkSide (profile, drawn facing right); falls back to walk
         const dirKey = { up: 'walkUp', down: 'walkDown', side: 'walkSide' }[p.walkDir];
         const w = c[dirKey] || c.walk || [poses.stand ?? poses.idle ?? 0];
         idx = w[Math.floor(p.walkPhase || 0) % w.length];
@@ -341,7 +341,7 @@
     ctx.restore();
   }
 
-  // Hình người giữ chỗ khi chưa có ảnh nhân vật (áo, đầu, búi tóc; quỳ hoặc đứng theo scene.person.idleStyle)
+  // Placeholder figure when there is no character image (robe, head, hair bun; kneeling or standing per scene.person.idleStyle)
   function drawPlaceholder(p, h, pose) {
     const kneelBase = (theme.scene?.person?.idleStyle || 'kneel') !== 'stand';
     const standing = pose === 'walk' || pose === 'stand' || pose === 'offer' || pose.startsWith('dance') || pose === 'cheer' || !kneelBase;
@@ -370,8 +370,8 @@
     ctx.beginPath(); ctx.arc(x, y - 9 + bow * 6, 5.5, 0, 6.283); ctx.fill();
   }
 
-  // ---------- Nhãn tên, bong bóng chat ----------
-  // Dùng chung cho cảnh 2D và 3D (Kit.makeLabels): head(p) trả toạ độ đầu trên khung 1080 x 1920.
+  // ---------- Name tags, chat bubbles ----------
+  // Shared by the 2D and 3D scenes (Kit.makeLabels): head(p) returns the head position in the 1080 x 1920 frame.
   function makeLabels({ head, color = (k, d) => d, maxTags: tagsOf = () => 8 }) {
     let ctx = null;
     function roundRect(x, y, w, h, r) {
@@ -379,8 +379,8 @@
       ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
     }
 
-    // Nhãn tên: top 3 trên ghế, người vừa tặng / chat / đang làm hành động, rồi người mới vào.
-    // Tối đa maxTags nhãn (scene.json "maxTags", không tính top 3) và không cho nhãn đè lên nhau.
+    // Name tags: the top 3 in seats, people who just gifted / chatted / are running an action, then newcomers.
+    // At most maxTags tags (scene.json "maxTags", not counting the top 3), and tags never overlap.
     function tagRect(p) {
       const hd = head(p);
       ctx.font = '700 27px "Be Vietnam Pro", system-ui, sans-serif';
@@ -463,7 +463,7 @@
   K.makeLabels = makeLabels;
   const labels = makeLabels({ head: (p) => P.head(p), color: col, maxTags: () => maxTags });
 
-  // ---------- Ghế danh dự: top N người tặng nhiều nhất ----------
+  // ---------- Seats of honor: the top N gifters ----------
   function seatTop(top = []) {
     if (!seats.length) return;
     const want = top.slice(0, seats.length);
@@ -492,7 +492,7 @@
     }
   }
 
-  /** Đổi nhân vật khi chat đúng từ khoá của một mẫu người (1–3 từ, ví dụ "bà", "cao tăng"). */
+  /** Switch character when a chat matches a character template's keyword (1–3 words, e.g. "bà", "cao tăng"). */
   function skinFromChat(user, text) {
     const w = String(text || '').toLowerCase().normalize('NFC').replace(/[^\p{L}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
     if (!w || w.split(' ').length > 3) return false;
@@ -505,7 +505,7 @@
   }
 
   // ---------- Camera ----------
-  /** Zoom vào người / điểm trong `duration` ms rồi quay về toàn cảnh. Nhiều yêu cầu thì xếp hàng. */
+  /** Zoom to a person / point for `duration` ms, then back to the full view. Multiple requests are queued. */
   function focus(target, o = {}) {
     if (settings.cameraFx === false) return;
     cam.queue.push({ target, zoom: o.zoom ?? 1.55, ms: o.duration ?? 3200 });
@@ -524,10 +524,10 @@
     cam.x = Math.max(hw, Math.min(W - hw, cam.x)); cam.y = Math.max(hh, Math.min(H - hh, cam.y));
   }
 
-  // ---------- Nền ----------
+  // ---------- Background ----------
   const chromaParam = new URLSearchParams(location.search).has('chroma');
   function drawBackground(t) {
-    // nền xanh để ghép trong OBS (cài đặt "chroma" hoặc ?chroma): bỏ ảnh nền, đèn lung linh, tia nắng
+    // green screen for keying in OBS ("chroma" setting or ?chroma): drop the background image, twinkling lights, sun rays
     if (settings.chroma === true || chromaParam) { ctx.fillStyle = theme.scene?.chroma || '#00ff00'; ctx.fillRect(0, 0, W, H); return; }
     const d = bgVideo && bgVideo.ready ? bgVideo : bgImage && bgImage.ready ? bgImage : null;
     if (d) {
@@ -566,7 +566,7 @@
     ctx.restore();
   }
 
-  // ---------- Vòng vẽ ----------
+  // ---------- Render loop ----------
   let debugOverlay = new URLSearchParams(location.search).has('scene');
   function frame(t, dt) {
     if (!ctx) return;
@@ -594,7 +594,7 @@
     K.fx.draw(ctx, 'screen', t);
   }
 
-  // ?scene: vẽ đè vùng sàn, lối đi, chỗ đứng, ghế, điểm để kiểm tra scene.json
+  // ?scene: overlay the floor area, aisle, standing spots, seats and points to check scene.json
   function drawDebug() {
     ctx.save();
     ctx.strokeStyle = 'rgba(0,255,200,.9)'; ctx.lineWidth = 3; ctx.setLineDash([12, 8]);
@@ -617,7 +617,7 @@
   K.scene = {
     init, configure, frame, ensure, leave: (id) => { const p = persons.get(id); if (p) leave(p); }, reset, point, seatTop, skinFromChat, focus,
     person: (id) => persons.get(id), npc: (id) => npcs.get(id), people: () => [...persons.values()].filter((p) => !p.leaving),
-    extras: () => [...fillers.values()], // người lấp chỗ (không phải người xem)
+    extras: () => [...fillers.values()], // fillers (not viewers)
     height, P, get layout() { return layout; }, get seats() { return seats; }, get scene() { return S; }, get chars() { return chars; },
     set debug(v) { debugOverlay = v; },
   };

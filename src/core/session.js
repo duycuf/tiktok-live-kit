@@ -1,5 +1,5 @@
-// Trạng thái một phiên live: người chơi, bảng xếp hạng, danh hiệu, mục tiêu, thống kê.
-// Lưu xuống file để tắt mở server (hay mất điện) giữa buổi live không mất bảng xếp hạng.
+// State of one live session: players, leaderboard, titles, goals, stats.
+// Saved to a file so restarting the server (or a power cut) mid-live doesn't lose the leaderboard.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,7 +23,7 @@ export function createSession({ file, titles = [], goals = [], playerTtlMs = 20 
     try {
       const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
       s = { ...blank(), ...saved, goals: blank().goals.map((g) => ({ ...g, reached: saved.goals?.find((x) => x.id === g.id)?.reached || 0 })) };
-    } catch { /* chưa có phiên cũ */ }
+    } catch { /* no previous session yet */ }
   }
 
   let saveTimer = null;
@@ -52,7 +52,7 @@ export function createSession({ file, titles = [], goals = [], playerTtlMs = 20 
     return { player: p, isNew };
   }
 
-  /** Cộng một chỉ số; trả về các mục tiêu vừa đạt. */
+  /** Increment a metric; returns the goals just reached. */
   function bump(metric, n) {
     s.totals[metric] = (s.totals[metric] || 0) + n;
     const hits = [];
@@ -65,7 +65,7 @@ export function createSession({ file, titles = [], goals = [], playerTtlMs = 20 
     return hits;
   }
 
-  /** Cộng xu cho người tặng; trả về danh hiệu mới nếu vừa lên bậc. */
+  /** Add coins to the gifter; returns the new title if they just ranked up. */
   function addCoins(p, coins) {
     p.coins += coins;
     p.gifts += 1;

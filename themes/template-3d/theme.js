@@ -1,13 +1,13 @@
-// Phần riêng của theme. Phần lớn theme không cần sửa file này: mọi thứ khai báo trong theme.json + scene.json.
-// Dùng khi muốn một hành động hay một lớp vẽ mà engine chưa có sẵn.
+// Theme-specific code. Most themes never need to edit this file: everything is declared in theme.json + scene.json.
+// Use it for an action or a drawing layer the engine does not provide yet.
 //
-//   Kit.action('tenHam', (person, ev, ctx) => { ... })   gọi từ theme.json: { "js": "tenHam" }
-//   Kit.on('frame', (t, dt) => { ... })                  chạy mỗi khung hình
-//   Kit.on('gift', (ev) => { ... })                      nghe sự kiện: join chat like gift command follow share title goal periodic speak seated
+//   Kit.action('tenHam', (person, ev, ctx) => { ... })   called from theme.json: { "js": "tenHam" }
+//   Kit.on('frame', (t, dt) => { ... })                  runs every frame
+//   Kit.on('gift', (ev) => { ... })                      listens for events: join chat like gift command follow share title goal periodic speak seated
 //
-// Công cụ có sẵn: Kit.scene (người, điểm, camera), Kit.fx (hiệu ứng), Kit.audio (tiếng), Kit.hud (giao diện), Kit.assets (ảnh, gif, video)
+// Built-in tools: Kit.scene (people, points, camera), Kit.fx (effects), Kit.audio (sound), Kit.hud (interface), Kit.assets (images, gifs, videos)
 
-// Ví dụ: người tặng quà lớn được rắc thêm sao quanh đầu
+// Example: sprinkle extra stars around the head of someone who sends a big gift
 // Kit.action('rac-sao', (person) => {
 //   const h = Kit.scene.P.head(person);
 //   Kit.fx.emit('star', { x: h.x, y: h.y, count: 20, spread: 40 });

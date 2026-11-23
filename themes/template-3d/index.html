@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Theme</title>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
-<!-- Three.js cho cảnh 3D: phải đứng trước mọi script -->
+<!-- Three.js for the 3D scene: must come before every script -->
 <script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three/addons/" } }</script>
 <style>html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }</style>
 </head>
 <body>
 <div id="stage"></div>
-<!-- Engine dùng chung: giữ nguyên thứ tự -->
+<!-- Shared engine: keep this order -->
 <script src="/sdk/live-sdk.js"></script>
 <script src="/sdk/geometry.js"></script>
 <script src="/sdk/assets.js"></script>
@@ -21,7 +21,7 @@
 <script src="/sdk/scene3d.js"></script>
 <script src="/sdk/hud.js"></script>
 <script src="/sdk/kit.js"></script>
-<!-- Phần riêng của theme (tuỳ chọn) -->
+<!-- Theme-specific code (optional) -->
 <script src="theme.js"></script>
 </body>
 </html>

@@ -1,11 +1,11 @@
-// Ghi nhớ các món quà đã gặp thật trên live (ID, tên, giá, ảnh) để bảng điều khiển cho chọn hành động riêng.
+// Remember gifts actually seen on live (ID, name, price, image) so the control panel can assign each one its own action.
 
 import fs from 'node:fs';
 import path from 'node:path';
 
 export function createGiftCatalog(file) {
   let gifts = {};
-  try { gifts = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* chưa có */ }
+  try { gifts = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* none yet */ }
   let timer = null;
 
   function learn(gift) {

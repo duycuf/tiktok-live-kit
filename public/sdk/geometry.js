@@ -1,14 +1,14 @@
-// Kit.geometry: tính toán phối cảnh và chỗ đứng từ scene.json. Không đụng tới DOM (dùng được trong test).
+// Kit.geometry: perspective and standing-spot calculations from scene.json. Does not touch the DOM (usable in tests).
 //
-// scene.json (toạ độ theo khung 1080x1920 của ảnh nền):
-//   horizonY            đường chân trời (nơi ván sàn, thảm tụ lại)
-//   person              { refY, refHeight, exponent }  người cao refHeight px khi đứng ở y = refY;
-//                       càng gần càng to theo lũy thừa `exponent` (1 = đúng phối cảnh, nhỏ hơn = đều cỡ, chứa đông hơn)
-//   floor               { top, bottom, left, right }   vùng sàn đặt đám đông
-//   aisle               { x, half: [[y1, w1], [y2, w2]], lane }  lối đi giữa (nửa bề rộng theo độ sâu), làn đi bộ
-//   spacing             { col, row }   khoảng cách ngang / dọc tính theo chiều cao người (mặc định 0.74 / 0.36)
-//   obstacles           [{ x0, x1, y0, y1 }]  vùng không đặt người (chân cột, bàn...)
-//   seats               [[x, y], ...]  ghế danh dự theo thứ tự ưu tiên
+// scene.json (coordinates in the 1080x1920 frame of the background image):
+//   horizonY            horizon line (where floorboards and carpets converge)
+//   person              { refY, refHeight, exponent }  a person is refHeight px tall when standing at y = refY;
+//                       closer means larger, by the power `exponent` (1 = true perspective, smaller = more uniform size, fits more people)
+//   floor               { top, bottom, left, right }   floor area for the crowd
+//   aisle               { x, half: [[y1, w1], [y2, w2]], lane }  center aisle (half-width by depth), walking lane
+//   spacing             { col, row }   horizontal / vertical spacing relative to person height (default 0.74 / 0.36)
+//   obstacles           [{ x0, x1, y0, y1 }]  areas where no one is placed (pillar bases, tables...)
+//   seats               [[x, y], ...]  seats of honor in priority order
 
 (function (root) {
   const DEFAULTS = {
@@ -32,14 +32,14 @@
     return s;
   }
 
-  /** Chiều cao người (tư thế nghỉ) tại độ sâu y. */
+  /** Person height (resting pose) at depth y. */
   function personH(s, y) {
     const { refY, refHeight, exponent } = s.person;
     const ratio = Math.max(0.2, (y - s.horizonY) / Math.max(1, refY - s.horizonY));
     return refHeight * Math.pow(ratio, exponent);
   }
 
-  /** Nửa bề rộng lối đi tại y (nội suy tuyến tính giữa hai mốc đo). */
+  /** Aisle half-width at y (linear interpolation between the two measured points). */
   function aisleHalf(s, y) {
     if (!s.aisle) return 0;
     const [[y1, w1], [y2, w2]] = s.aisle.half;
@@ -49,7 +49,7 @@
 
   const blocked = (s, x, y, pad) => s.obstacles.some((o) => x > o.x0 - pad && x < o.x1 + pad && y > o.y0 && y < o.y1);
 
-  /** Chỗ đứng trên sàn với độ thưa `density` (1 = dày nhất, 1.6 = thưa). Thứ tự: gần nơi thờ / sân khấu trước, sát lối giữa trước. */
+  /** Standing spots on the floor at spacing `density` (1 = densest, 1.6 = sparse). Order: nearest the altar / stage first, then nearest the center aisle. */
   function buildSlots(scene, density = 1) {
     const s = scene.horizonY !== undefined && scene.person?.refY ? scene : normalize(scene);
     const list = [];
@@ -65,7 +65,7 @@
   }
 
   const LEVELS = [1.7, 1.35, 1.0];
-  /** Bộ chỗ đứng theo số người: phòng vắng thì thưa (nhìn vẫn kín), đông thì dày. */
+  /** Standing spots for a given headcount: sparse when the room is empty (still looks full), dense when it is crowded. */
   function layoutFor(scene, count) {
     const s = normalize(scene);
     for (const d of LEVELS) {
